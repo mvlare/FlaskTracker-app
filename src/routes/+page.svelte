@@ -35,11 +35,6 @@
 		</div>
 	{/if}
 
-	<div class="mb-6">
-		<h1 class="text-2xl font-bold text-gray-900 mb-1">Flask Tracking System</h1>
-		<p class="text-gray-600 text-sm">Manage and monitor your laboratory flasks</p>
-	</div>
-
 	<SearchBar
 		bind:flaskSearch={data.filters.flaskSearch}
 		bind:boxSearch={data.filters.boxSearch}
@@ -55,7 +50,11 @@
 			/>
 		</div>
 		<div class="lg:col-span-1">
-			<RemarksPanel remarks={selectedFlask?.remarks || ''} flaskName={selectedFlask?.name || ''} />
+			<RemarksPanel
+				remarks={selectedFlask?.remarks || ''}
+				flaskName={selectedFlask?.name || ''}
+				flaskId={selectedFlask?.id || null}
+			/>
 		</div>
 	</div>
 

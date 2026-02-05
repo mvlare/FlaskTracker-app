@@ -1,7 +1,8 @@
 import { db } from '$lib/server/db';
 import { flasks, boxes, boxContentLines, boxContentHeaders } from '$lib/server/db/schema';
 import { eq, ilike, or, sql, desc, asc } from 'drizzle-orm';
-import type { PageServerLoad } from './$types';
+import type { PageServerLoad, Actions } from './$types';
+import { fail } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ url }) => {
 	// Get query parameters
@@ -9,7 +10,7 @@ export const load: PageServerLoad = async ({ url }) => {
 	const limit = 15;
 	const offset = (page - 1) * limit;
 
-	const flaskSearch = url.searchParams.get('flaskSearch') || '';
+	const flaskSearch = url.searchParams.get('flaskSearch') ?? 'UU-1-';
 	const boxSearch = url.searchParams.get('boxSearch') || '';
 	const sortBy = url.searchParams.get('sortBy') || 'flask';
 	const sortOrder = url.searchParams.get('sortOrder') || 'desc';
@@ -36,7 +37,8 @@ export const load: PageServerLoad = async ({ url }) => {
 
 		// Apply filters
 		const conditions = [];
-		if (flaskSearch) {
+		// Only filter flasks if search is not empty and not just the default prefix
+		if (flaskSearch && flaskSearch !== 'UU-1-') {
 			conditions.push(ilike(flasks.name, `%${flaskSearch}%`));
 		}
 		if (boxSearch) {
@@ -111,5 +113,34 @@ export const load: PageServerLoad = async ({ url }) => {
 			},
 			error: 'Failed to load flasks data'
 		};
+	}
+};
+
+export const actions: Actions = {
+	updateRemarks: async ({ request }) => {
+		const formData = await request.formData();
+		const flaskId = parseInt(formData.get('flaskId') as string);
+		const remarks = formData.get('remarks') as string;
+
+		// Validate input
+		if (!flaskId || isNaN(flaskId)) {
+			return fail(400, { error: 'Invalid flask ID' });
+		}
+
+		try {
+			// Update the flask remarks in the database
+			await db
+				.update(flasks)
+				.set({
+					remarks: remarks || null,
+					updatedAt: new Date()
+				})
+				.where(eq(flasks.id, flaskId));
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error updating remarks:', error);
+			return fail(500, { error: 'Failed to update remarks' });
+		}
 	}
 };

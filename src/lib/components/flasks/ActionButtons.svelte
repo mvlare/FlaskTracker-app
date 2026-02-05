@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Plus, Edit, AlertCircle, Box, History } from 'lucide-svelte';
+	import { Plus, AlertCircle, Box, History } from 'lucide-svelte';
 
 	let { selectedFlaskId = null }: { selectedFlaskId?: number | null } = $props();
 </script>
@@ -11,14 +11,6 @@
 	>
 		<Plus class="h-4 w-4" />
 		New
-	</button>
-	<button
-		onclick={() => console.log('Edit flask:', selectedFlaskId)}
-		disabled={!selectedFlaskId}
-		class="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-gray-800 rounded-md hover:bg-yellow-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors font-medium text-sm shadow-sm"
-	>
-		<Edit class="h-4 w-4" />
-		Edit
 	</button>
 	<button
 		onclick={() => console.log('Issue for flask:', selectedFlaskId)}

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-svelte';
 	import { formatDateDisplay } from '$lib/utils/dates';
 	import { onMount } from 'svelte';
@@ -30,7 +30,7 @@
 	let tableRef: HTMLTableElement;
 
 	function handleSort(column: string) {
-		const url = new URL($page.url);
+		const url = new URL(page.url);
 		if (sortBy === column) {
 			// Toggle sort order
 			const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
@@ -100,7 +100,7 @@
 	<table bind:this={tableRef} class="min-w-full divide-y divide-gray-200">
 		<thead class="bg-gray-100 sticky top-0">
 			<tr>
-				<th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-20">
+				<th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 tracking-wider w-20">
 					Id
 				</th>
 				<th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
@@ -133,10 +133,10 @@
 						{/if}
 					</button>
 				</th>
-				<th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+				<th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 tracking-wider">
 					Broken Date
 				</th>
-				<th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+				<th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 tracking-wider">
 					Low Pressure Date
 				</th>
 			</tr>
@@ -154,7 +154,7 @@
 						data-row-index={index}
 						onclick={() => handleRowClick(index)}
 						class="cursor-pointer transition-all {index === selectedIndex
-							? 'bg-gradient-to-r from-yellow-100 to-yellow-50 border-l-4 border-l-yellow-500'
+							? 'bg-linear-to-r from-yellow-100 to-yellow-50 border-l-4 border-l-yellow-500'
 							: 'hover:bg-gray-50'}"
 					>
 						<td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
