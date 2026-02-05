@@ -58,7 +58,7 @@
 				oninput={handleSearch}
 				placeholder="Search flasks... (Press / to focus)"
 				title="Search flask by name (Press / to focus)"
-				class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+				class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
 			/>
 		</div>
 	</div>
@@ -72,7 +72,7 @@
 				oninput={handleSearch}
 				placeholder="Search boxes..."
 				title="Search boxes..."
-				class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+				class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
 			/>
 		</div>
 	</div>

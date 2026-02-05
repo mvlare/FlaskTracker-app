@@ -154,7 +154,7 @@
 						data-row-index={index}
 						onclick={() => handleRowClick(index)}
 						class="cursor-pointer transition-all {index === selectedIndex
-							? 'bg-linear-to-r from-yellow-100 to-yellow-50 border-l-4 border-l-yellow-500'
+							? 'bg-linear-to-r from-blue-100 to-blue-50 border-l-4 border-l-blue-500'
 							: 'hover:bg-gray-50'}"
 					>
 						<td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">

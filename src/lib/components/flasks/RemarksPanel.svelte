@@ -72,7 +72,7 @@
 				<button
 					type="submit"
 					disabled={!hasChanges || isSaving || !flaskId}
-					class="flex items-center gap-1 px-3 py-1.5 bg-yellow-500 text-gray-800 rounded-md hover:bg-yellow-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors text-sm font-medium shadow-sm"
+					class="flex items-center gap-1 px-3 py-1.5 bg-sky-500 text-gray-800 rounded-md hover:bg-sky-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors text-sm font-medium shadow-sm"
 				>
 					<Save class="h-4 w-4" />
 					{isSaving ? 'Saving...' : 'Save'}
@@ -100,6 +100,6 @@
 		onkeydown={handleTabKey}
 		placeholder={flaskId ? 'Enter remarks...' : 'Select a flask to edit remarks'}
 		disabled={!flaskId}
-		class="w-full border border-gray-200 rounded p-3 bg-gray-50 min-h-[320px] max-h-[320px] text-sm text-gray-800 font-mono resize-none focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent disabled:cursor-not-allowed disabled:bg-gray-100"
+		class="w-full border border-gray-200 rounded p-3 bg-gray-50 min-h-[320px] max-h-[320px] text-sm text-gray-800 font-mono resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:bg-gray-100"
 	></textarea>
 </div>

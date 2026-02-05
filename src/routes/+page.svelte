@@ -24,7 +24,7 @@
 
 <TopBar />
 
-<main class="container mx-auto px-4 py-6 max-w-7xl">
+<main class="container mx-auto px-4 py-6 max-w-7xl bg-slate-50 min-h-screen">
 	{#if data.error}
 		<div
 			class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md mb-4"
