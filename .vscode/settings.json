@@ -1,0 +1,7 @@
+{
+	"files.associations": {
+		"*.sql": "postgres",
+		"*.css": "tailwindcss"
+	},
+	"workbench.editor.labelFormat": "short"
+}
