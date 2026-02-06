@@ -2,9 +2,13 @@ import { db } from '$lib/server/db';
 import { flasks, boxes, boxContentLines, boxContentHeaders } from '$lib/server/db/schema';
 import { eq, ilike, or, sql, desc, asc } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, locals }) => {
+	// Require authentication
+	if (!locals.session) {
+		throw redirect(303, '/auth/signin');
+	}
 	// Get query parameters
 	const page = parseInt(url.searchParams.get('page') || '1');
 	const limit = 15;
@@ -117,7 +121,12 @@ export const load: PageServerLoad = async ({ url }) => {
 };
 
 export const actions: Actions = {
-	updateRemarks: async ({ request }) => {
+	updateRemarks: async ({ request, locals }) => {
+		// Require authentication
+		if (!locals.session || !locals.user) {
+			return fail(401, { error: 'Unauthorized' });
+		}
+
 		const formData = await request.formData();
 		const flaskId = parseInt(formData.get('flaskId') as string);
 		const remarks = formData.get('remarks') as string;
@@ -128,12 +137,13 @@ export const actions: Actions = {
 		}
 
 		try {
-			// Update the flask remarks in the database
+			// Update the flask remarks in the database with audit trail
 			await db
 				.update(flasks)
 				.set({
 					remarks: remarks || null,
-					updatedAt: new Date()
+					updatedAt: new Date(),
+					updatedUserId: locals.user.id // Populate audit field
 				})
 				.where(eq(flasks.id, flaskId));
 

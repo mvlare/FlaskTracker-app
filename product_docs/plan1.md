@@ -218,3 +218,78 @@ All 13 tasks of Phase 2 have been successfully completed. The application now in
 3. **User testing**: Have stakeholders review the interface for usability feedback
 4. **Database constraints**: Verify the unique constraint on box_content_lines (flask can only be in one box at a time?)
 5. **Consider Phase 3**: Review `product_docs\0110_new_and_edit_flask.md` and other phase documents to plan next steps
+
+---
+
+## [x] Phase 3
+### Product_docs:
+- product_docs\plan3_clerk_auth.md (Clerk research)
+- product_docs\plan4_auth.js.md (Authentication decision & implementation guide)
+- product_docs\0101_login.md (to be updated)
+
+### Description
+Phase 3 focuses on implementing user authentication to enable secure access and audit trail functionality.
+
+### Research Completed (2026-02-06)
+Three authentication options were investigated:
+
+1. **NeonAuth** - ❌ NOT VIABLE
+   - Architecture preference from 0000_architecture.md
+   - **Blocker**: No SvelteKit support (only Next.js, React, React Router)
+   - Cannot proceed with this option
+
+2. **Auth.js (@auth/sveltekit)** - ✅ RECOMMENDED
+   - Official Auth.js SvelteKit adapter
+   - Free and open-source
+   - Integrates with existing Drizzle ORM + Neon PostgreSQL
+   - Supports OAuth (Google, GitHub, etc.)
+   - No custom domain required for production
+   - Status: Experimental but actively maintained
+
+3. **Clerk (svelte-clerk)** - ⚠️ FALLBACK OPTION
+   - Community package (unofficial)
+   - Pre-built UI components
+   - Usage-based pricing (free tier: 10k MAU)
+   - Rich enterprise features (MFA, SSO)
+   - Requires custom domain for production
+
+### Decision
+**Selected: Auth.js (@auth/sveltekit)**
+
+**Rationale:**
+- Free and open-source (no recurring costs)
+- Official adapter from Auth.js team
+- Works natively with existing tech stack
+- No vendor lock-in
+- Full control over authentication logic
+- Detailed implementation guide in plan4_auth.js.md
+
+### Tasks
+- [x] Research NeonAuth capabilities
+- [x] Evaluate Auth.js (@auth/sveltekit)
+- [x] Evaluate Clerk (svelte-clerk)
+- [x] Document findings and comparison
+- [x] Update architecture document with decision
+- [ ] Set up OAuth provider (Google Cloud Console)
+- [ ] Install Auth.js dependencies
+- [ ] Create database schema for auth tables
+- [ ] Configure Auth.js server hooks
+- [ ] Update TopBar component with sign-in/sign-out
+- [ ] Protect routes with authentication checks
+- [ ] Add audit trail (userId) to form actions
+- [ ] Test locally
+- [ ] Deploy to Vercel with environment variables
+- [ ] Production testing
+
+### Implementation Guide
+See `product_docs/plan4_auth.js.md` for complete step-by-step implementation instructions including:
+- Installation steps
+- Configuration code samples
+- Database schema
+- UI component updates
+- Route protection
+- Vercel deployment
+- Testing checklist
+
+### Estimated Implementation Time
+5-7 hours total
