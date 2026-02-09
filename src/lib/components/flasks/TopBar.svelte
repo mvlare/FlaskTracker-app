@@ -31,7 +31,7 @@
 			{#if session}
 				<!-- User is signed in -->
 				<div class="flex items-center gap-3">
-					<span class="text-sm font-medium text-white">
+					<span class="text-sm font-medium text-gray-200">
 						{user?.name || user?.email}
 					</span>
 					<!-- Admin Link -->
@@ -43,6 +43,12 @@
 							Manage Users
 						</button>
 					{/if}
+					<button
+						onclick={() => goto("/auth/change-password")}
+						class="rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-100 transition-colors shadow-sm"
+					>
+						Change Password
+					</button>
 					<button
 						onclick={handleSignOut}
 						class="rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-100 transition-colors shadow-sm"

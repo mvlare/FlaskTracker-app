@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { authClient } from "$lib/auth-client";
-	import { goto } from "$app/navigation";
+	import { goto, invalidateAll } from "$app/navigation";
+	import { Eye, EyeOff } from "lucide-svelte";
 
 	let email = $state("");
 	let password = $state("");
 	let error = $state("");
 	let loading = $state(false);
+	let showPassword = $state(false);
 
 	async function handleSignIn() {
 		loading = true;
@@ -20,6 +22,8 @@
 			if (result.error) {
 				error = result.error.message || "Failed to sign in";
 			} else {
+				// Invalidate all data to refresh session
+				await invalidateAll();
 				// Redirect to home page after successful sign-in
 				goto("/");
 			}
@@ -31,7 +35,7 @@
 	}
 </script>
 
-<div class="flex min-h-screen items-center justify-center bg-gradient-to-br from-yellow-50 to-yellow-100">
+<div class="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
 	<div class="w-full max-w-md rounded-lg bg-white p-8 shadow-xl">
 		<div class="mb-8 text-center">
 			<h1 class="text-2xl font-bold text-gray-900">Sign In to FlaskTracker</h1>
@@ -59,20 +63,34 @@
 
 			<div>
 				<label for="password" class="mb-1 block text-sm font-medium">Password</label>
-				<input
-					id="password"
-					type="password"
-					bind:value={password}
-					required
-					class="w-full rounded border px-3 py-2"
-					placeholder="••••••••"
-				/>
+				<div class="relative">
+					<input
+						id="password"
+						type={showPassword ? "text" : "password"}
+						bind:value={password}
+						required
+						class="w-full rounded border px-3 py-2 pr-10"
+						placeholder="••••••••"
+					/>
+					<button
+						type="button"
+						onclick={() => showPassword = !showPassword}
+						class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+						aria-label={showPassword ? "Hide password" : "Show password"}
+					>
+						{#if showPassword}
+							<EyeOff class="h-5 w-5" />
+						{:else}
+							<Eye class="h-5 w-5" />
+						{/if}
+					</button>
+				</div>
 			</div>
 
 			<button
 				type="submit"
 				disabled={loading}
-				class="w-full rounded bg-yellow-500 py-2 text-white hover:bg-yellow-600 disabled:opacity-50"
+				class="w-full rounded bg-sky-500 py-2 text-white hover:bg-sky-600 disabled:opacity-50"
 			>
 				{loading ? "Signing in..." : "Sign In"}
 			</button>
