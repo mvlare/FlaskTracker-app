@@ -129,7 +129,11 @@ export const actions: Actions = {
 
 		const formData = await request.formData();
 		const flaskId = parseInt(formData.get('flaskId') as string);
-		const remarks = formData.get('remarks') as string;
+		const remarksRaw = formData.get('remarks');
+
+		// Process remarks - handle null, undefined, or empty string
+		const remarksTrimmed = remarksRaw ? String(remarksRaw).trim() : '';
+		const remarksValue = remarksTrimmed || null;
 
 		// Validate input
 		if (!flaskId || isNaN(flaskId)) {
@@ -138,13 +142,17 @@ export const actions: Actions = {
 
 		try {
 			// Update the flask remarks in the database with audit trail
+			const updateData = {
+				remarks: remarksValue,
+				updatedAt: new Date(),
+				updatedUserId: locals.user.id
+			};
+
+			console.log('Updating remarks for flask', flaskId, ':', JSON.stringify(updateData, null, 2));
+
 			await db
 				.update(flasks)
-				.set({
-					remarks: remarks || null,
-					updatedAt: new Date(),
-					updatedUserId: locals.user.id // Populate audit field
-				})
+				.set(updateData)
 				.where(eq(flasks.id, flaskId));
 
 			return { success: true };

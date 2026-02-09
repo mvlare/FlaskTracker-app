@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { MessageSquare, Save } from 'lucide-svelte';
+	import { MessageSquare, Save, X } from 'lucide-svelte';
 	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 
 	let {
 		remarks = $bindable(''),
@@ -39,6 +40,11 @@
 			}, 0);
 		}
 	}
+
+	function handleCancel() {
+		editedRemarks = remarks || '';
+		saveMessage = null;
+	}
 </script>
 
 <div class="bg-white border border-gray-300 rounded-md p-4 h-full">
@@ -48,36 +54,49 @@
 			<h3 class="text-sm font-semibold text-gray-700">Remarks</h3>
 		</div>
 		{#if flaskId}
-			<form
-				method="POST"
-				action="?/updateRemarks"
-				use:enhance={() => {
-					isSaving = true;
-					saveMessage = null;
-					return async ({ result }) => {
-						isSaving = false;
-						if (result.type === 'success') {
-							saveMessage = { type: 'success', text: 'Saved successfully' };
-							setTimeout(() => {
-								saveMessage = null;
-							}, 3000);
-						} else {
-							saveMessage = { type: 'error', text: 'Failed to save remarks' };
-						}
-					};
-				}}
-			>
-				<input type="hidden" name="flaskId" value={flaskId} />
-				<input type="hidden" name="remarks" value={editedRemarks} />
+			<div class="flex gap-2">
 				<button
-					type="submit"
+					type="button"
+					onclick={handleCancel}
 					disabled={!hasChanges || isSaving || !flaskId}
-					class="flex items-center gap-1 px-3 py-1.5 bg-sky-500 text-gray-800 rounded-md hover:bg-sky-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors text-sm font-medium shadow-sm"
+					class="flex items-center gap-1 px-3 py-1.5 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors text-sm font-medium shadow-sm"
 				>
-					<Save class="h-4 w-4" />
-					{isSaving ? 'Saving...' : 'Save'}
+					<X class="h-4 w-4" />
+					Cancel
 				</button>
-			</form>
+				<form
+					method="POST"
+					action="?/updateRemarks"
+					use:enhance={() => {
+						isSaving = true;
+						saveMessage = null;
+						return async ({ result, update }) => {
+							isSaving = false;
+							if (result.type === 'success') {
+								// Refresh the page data to get updated remarks from database
+								await invalidateAll();
+								saveMessage = { type: 'success', text: 'Saved successfully' };
+								setTimeout(() => {
+									saveMessage = null;
+								}, 3000);
+							} else {
+								saveMessage = { type: 'error', text: 'Failed to save remarks' };
+							}
+						};
+					}}
+				>
+					<input type="hidden" name="flaskId" value={flaskId} />
+					<input type="hidden" name="remarks" value={editedRemarks} />
+					<button
+						type="submit"
+						disabled={!hasChanges || isSaving || !flaskId}
+						class="flex items-center gap-1 px-3 py-1.5 bg-sky-500 text-gray-800 rounded-md hover:bg-sky-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors text-sm font-medium shadow-sm"
+					>
+						<Save class="h-4 w-4" />
+						{isSaving ? 'Saving...' : 'Save'}
+					</button>
+				</form>
+			</div>
 		{/if}
 	</div>
 	{#if flaskName}
