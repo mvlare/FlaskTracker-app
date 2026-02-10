@@ -18,7 +18,7 @@ export const flasks = pgTable(
 	'flasks',
 	{
 		id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
-		name: text('name').notNull(),
+		name: text('name').notNull().unique(),
 		remarks: text('remarks'),
 		brokenAt: timestamptz('broken_at'),
 		lowPressureAt: timestamptz('low_pressure_at'),
@@ -35,7 +35,7 @@ export const boxes = pgTable(
 	'boxes',
 	{
 		id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
-		name: text('name').notNull(),
+		name: text('name').notNull().unique(),
 		remarks: text('remarks'),
 		createdAt: timestamptz('created_at').defaultNow(),
 		createdUserId: text('created_user_id').references(() => user.id, { onDelete: 'set null' }),
