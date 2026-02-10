@@ -2,6 +2,7 @@
 	import { authClient } from "$lib/auth-client";
 	import { goto } from "$app/navigation";
 	import { page } from "$app/stores";
+	import { FlaskConical } from "lucide-svelte";
 
 	// Use server-side data instead of client stores to avoid SSR issues
 	const session = $derived($page.data.session);
@@ -17,7 +18,7 @@
 <header class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 shadow-md">
 	<div class="flex items-center justify-between">
 		<div class="flex items-center gap-4">
-			<img src="/flask_imau.png" alt="IMAU Flask" class="h-12 w-12 object-contain" />
+			<FlaskConical class="h-12 w-12 text-white" />
 			<div>
 				<h1 class="text-xl font-bold text-white">Flask Tracking System</h1>
 				<p class="text-xs text-white/90">Manage and monitor your laboratory flasks</p>

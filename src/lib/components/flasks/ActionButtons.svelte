@@ -78,16 +78,6 @@
 		{/if}
 	</div>
 
-	<!-- ! Issue Button -->
-	<button
-		onclick={() => console.log('Issue for flask:', selectedFlaskId)}
-		disabled={!selectedFlaskId}
-		class="flex items-center gap-2 px-4 py-2 bg-sky-500 text-gray-800 rounded-md hover:bg-sky-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors font-medium text-sm shadow-sm"
-	>
-		<AlertCircle class="h-4 w-4" />
-		Issue
-	</button>
-
 	<!-- Edit Flask Button -->
 	<button
 		onclick={handleEditFlask}
@@ -96,6 +86,16 @@
 	>
 		<Pencil class="h-4 w-4" />
 		Edit Flask
+	</button>
+
+	<!-- ! Issue Button -->
+	<button
+		onclick={() => console.log('Issue for flask:', selectedFlaskId)}
+		disabled={!selectedFlaskId}
+		class="flex items-center gap-2 px-4 py-2 bg-sky-500 text-gray-800 rounded-md hover:bg-sky-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors font-medium text-sm shadow-sm"
+	>
+		<AlertCircle class="h-4 w-4" />
+		Issue
 	</button>
 
 	<!-- Edit Box-Flasks Button -->
