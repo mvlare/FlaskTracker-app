@@ -1,0 +1,94 @@
+import { db } from '$lib/server/db';
+import { flasks } from '$lib/server/db/schema';
+import type { PageServerLoad, Actions } from './$types';
+import { fail, redirect, error } from '@sveltejs/kit';
+import { eq } from 'drizzle-orm';
+
+export const load: PageServerLoad = async ({ params, locals }) => {
+	// Require authentication
+	if (!locals.session) {
+		throw redirect(303, '/auth/signin');
+	}
+
+	const flaskId = parseInt(params.id);
+	if (isNaN(flaskId)) {
+		throw error(404, 'Flask not found');
+	}
+
+	const flask = await db.query.flasks.findFirst({
+		where: eq(flasks.id, flaskId)
+	});
+
+	if (!flask) {
+		throw error(404, 'Flask not found');
+	}
+
+	return { flask };
+};
+
+export const actions: Actions = {
+	update: async ({ request, params, locals }) => {
+		// Require authentication
+		if (!locals.session || !locals.user) {
+			return fail(401, { error: 'Unauthorized' });
+		}
+
+		const flaskId = parseInt(params.id);
+		if (isNaN(flaskId)) {
+			return fail(404, { error: 'Flask not found' });
+		}
+
+		const formData = await request.formData();
+		const name = formData.get('name') as string;
+		const remarksRaw = formData.get('remarks');
+		const brokenAtRaw = formData.get('brokenAt');
+		const lowPressureAtRaw = formData.get('lowPressureAt');
+
+		// Process remarks - handle null, undefined, or empty string
+		const remarksTrimmed = remarksRaw ? String(remarksRaw).trim() : '';
+		const remarksValue = remarksTrimmed || null;
+
+		// Validate required fields
+		if (!name || name.trim() === '') {
+			return fail(400, { error: 'Flask name is required' });
+		}
+
+		try {
+			// Parse dates if provided (convert to UTC)
+			const brokenAtDate =
+				brokenAtRaw && String(brokenAtRaw).trim()
+					? new Date(String(brokenAtRaw).trim() + 'T00:00:00Z')
+					: null;
+			const lowPressureAtDate =
+				lowPressureAtRaw && String(lowPressureAtRaw).trim()
+					? new Date(String(lowPressureAtRaw).trim() + 'T00:00:00Z')
+					: null;
+
+			// Update the flask
+			await db
+				.update(flasks)
+				.set({
+					name: name.trim(),
+					remarks: remarksValue,
+					brokenAt: brokenAtDate,
+					lowPressureAt: lowPressureAtDate,
+					updatedAt: new Date(),
+					updatedUserId: locals.user.id
+				})
+				.where(eq(flasks.id, flaskId));
+
+			// Redirect to the main flasks page
+			throw redirect(303, '/?flaskSearch=' + encodeURIComponent(name.trim()));
+		} catch (error) {
+			console.error('Error updating flask:', error);
+
+			// Check for unique constraint violation
+			if (error instanceof Error && error.message.includes('unique')) {
+				return fail(400, { error: 'A flask with this name already exists' });
+			}
+
+			// Don't catch redirect errors
+			throw error;
+		}
+	}
+};

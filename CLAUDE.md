@@ -1,12 +1,13 @@
 # CLAUDE
 
-## Development approach
-The product descriptions are in folder \product_docs\*.md in alpabetical order ascending.
-The first plan with phases and steps is placed \product_docs\plan1.md refering to the product descriptions.
-Followup of plans will be in plan[nr].md
+## Documentation Structure
 
-The plans contain steps and a indicator if it is done [ ].
-On executing the plan Claude will updat the plan, give findings, possible followups.
+**Key reference docs:**
+- `product_docs\architecture.md` - Tech stack and architectural decisions
+- `product_docs\authentication.md` - Detailed auth implementation reference
+- `product_docs\*.md` - Feature specifications (numbered 0100+)
+- `product_docs\research\` - Option evaluations and explorations
+- `product_docs\archive\` - Completed implementation plans
 
 ## Authentication & Security
 
