@@ -119,6 +119,6 @@
 		onkeydown={handleTabKey}
 		placeholder={flaskId ? 'Enter remarks...' : 'Select a flask to edit remarks'}
 		disabled={!flaskId}
-		class="w-full border border-gray-200 rounded p-3 bg-gray-50 min-h-[320px] max-h-[320px] text-sm text-gray-800 font-mono resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:bg-gray-100"
+		class="w-full border border-gray-200 rounded p-3 bg-gray-50 min-h-[320px] text-sm text-gray-800 font-mono resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:bg-gray-100"
 	></textarea>
 </div>

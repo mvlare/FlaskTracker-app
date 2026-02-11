@@ -100,10 +100,10 @@
 	<table bind:this={tableRef} class="min-w-full divide-y divide-gray-200">
 		<thead class="bg-gray-100 sticky top-0">
 			<tr>
-				<th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 tracking-wider w-20">
+				<th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 tracking-wider w-20">
 					Id
 				</th>
-				<th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+				<th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
 					<button
 						onclick={() => handleSort('flask')}
 						class="flex items-center gap-1 hover:text-gray-900 transition-colors"
@@ -118,7 +118,7 @@
 						{/if}
 					</button>
 				</th>
-				<th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+				<th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
 					<button
 						onclick={() => handleSort('box')}
 						class="flex items-center gap-1 hover:text-gray-900 transition-colors"
@@ -133,14 +133,14 @@
 						{/if}
 					</button>
 				</th>
-				<th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 tracking-wider">
+				<th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 tracking-wider w-32">
 					Broken Date
 				</th>
 				<th
-					class="px-4 py-3 text-left text-xs font-semibold text-gray-700 tracking-wider"
+					class="px-4 py-2 text-left text-xs font-semibold text-gray-700 tracking-wider w-32"
 					title="Latest Low Pressure Date"
 				>
-					Low Pressure Date
+					Latest Low Pressure Date
 				</th>
 			</tr>
 		</thead>
@@ -160,19 +160,19 @@
 							? 'bg-linear-to-r from-blue-100 to-blue-50 border-l-4 border-l-blue-500'
 							: 'hover:bg-gray-50'}"
 					>
-						<td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+						<td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
 							{flask.id}
 						</td>
-						<td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+						<td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
 							{flask.name}
 						</td>
-						<td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+						<td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
 							{flask.boxName || '-'}
 						</td>
-						<td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+						<td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700 w-32">
 							{formatDateDisplay(flask.brokenAt) || '-'}
 						</td>
-						<td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+						<td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700 w-32">
 							{formatDateDisplay(flask.lowPressureAt) || '-'}
 						</td>
 					</tr>

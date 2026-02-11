@@ -24,7 +24,7 @@
 
 <TopBar />
 
-<main class="container mx-auto px-4 py-6 max-w-7xl bg-slate-50 min-h-screen">
+<main class="container mx-auto px-4 py-4 max-w-7xl bg-slate-50 min-h-screen">
 	{#if data.error}
 		<div
 			class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md mb-4"
@@ -40,7 +40,7 @@
 		bind:boxSearch={data.filters.boxSearch}
 	/>
 
-	<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+	<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-3">
 		<div class="lg:col-span-2">
 			<FlasksGrid
 				flasks={data.flasks}
