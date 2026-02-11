@@ -76,19 +76,23 @@ export const actions: Actions = {
 					updatedUserId: locals.user.id
 				})
 				.where(eq(flasks.id, flaskId));
-
-			// Redirect to the main flasks page
-			throw redirect(303, '/?flaskSearch=' + encodeURIComponent(name.trim()));
 		} catch (error) {
 			console.error('Error updating flask:', error);
 
-			// Check for unique constraint violation
-			if (error instanceof Error && error.message.includes('unique')) {
+			// Check for unique constraint violation (PostgreSQL error code 23505)
+			// Drizzle wraps the PostgreSQL error in error.cause
+			if (
+				(error as any).code === '23505' ||
+				(error as any).cause?.code === '23505' ||
+				(error instanceof Error && error.message.toLowerCase().includes('unique'))
+			) {
 				return fail(400, { error: 'A flask with this name already exists' });
 			}
 
-			// Don't catch redirect errors
-			throw error;
+			return fail(500, { error: 'Failed to update flask' });
 		}
+
+		// Redirect to the main flasks page (outside try-catch)
+		throw redirect(303, '/?flaskSearch=' + encodeURIComponent(name.trim()));
 	}
 };

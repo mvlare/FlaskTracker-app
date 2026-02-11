@@ -16,5 +16,5 @@ export const flasksGridColumns: GridColumn[] = [
 		relation_lookup: ['flasks', 'box_content_lines', 'box_content_headers', 'boxes']
 	},
 	{ prompt: 'Broken Date', db_field: 'flasks.broken_at', format: 'YYYY-MM-DD' },
-	{ prompt: 'Low Pressure Date', db_field: 'flasks.low_pressure_at', format: 'YYYY-MM-DD' }
+	{ prompt: 'Latest Low Pressure Date', db_field: 'flasks.low_pressure_at', format: 'YYYY-MM-DD' }
 ];

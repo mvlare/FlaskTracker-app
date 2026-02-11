@@ -136,7 +136,10 @@
 				<th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 tracking-wider">
 					Broken Date
 				</th>
-				<th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 tracking-wider">
+				<th
+					class="px-4 py-3 text-left text-xs font-semibold text-gray-700 tracking-wider"
+					title="Latest Low Pressure Date"
+				>
 					Low Pressure Date
 				</th>
 			</tr>

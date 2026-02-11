@@ -42,18 +42,23 @@ export const actions: Actions = {
 			};
 
 			await db.insert(boxes).values(insertData);
-
-			// Redirect to the main page
-			throw redirect(303, '/');
 		} catch (error) {
 			console.error('Error creating box:', error);
 
-			// Check for unique constraint violation
-			if (error instanceof Error && error.message.includes('unique')) {
+			// Check for unique constraint violation (PostgreSQL error code 23505)
+			// Drizzle wraps the PostgreSQL error in error.cause
+			if (
+				(error as any).code === '23505' ||
+				(error as any).cause?.code === '23505' ||
+				(error instanceof Error && error.message.toLowerCase().includes('unique'))
+			) {
 				return fail(400, { error: 'A box with this name already exists' });
 			}
 
 			return fail(500, { error: 'Failed to create box' });
 		}
+
+		// Redirect to the main page (outside try-catch)
+		throw redirect(303, '/');
 	}
 };
