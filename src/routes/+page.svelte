@@ -13,7 +13,6 @@
 		name: string;
 		remarks: string | null;
 		brokenAt: Date | string | null;
-		lowPressureAt: Date | string | null;
 		boxName: string | null;
 	} | null>(null);
 

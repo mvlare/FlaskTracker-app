@@ -10,7 +10,6 @@
 		name: string;
 		remarks: string | null;
 		brokenAt: Date | string | null;
-		lowPressureAt: Date | string | null;
 		boxName: string | null;
 	}
 
@@ -136,18 +135,12 @@
 				<th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 tracking-wider w-32">
 					Broken Date
 				</th>
-				<th
-					class="px-4 py-2 text-left text-xs font-semibold text-gray-700 tracking-wider w-32"
-					title="Latest Low Pressure Date"
-				>
-					Latest Low Pressure Date
-				</th>
 			</tr>
 		</thead>
 		<tbody class="bg-white divide-y divide-gray-200">
 			{#if flasks.length === 0}
 				<tr>
-					<td colspan="5" class="px-4 py-8 text-center text-gray-500">
+					<td colspan="4" class="px-4 py-8 text-center text-gray-500">
 						No flasks found. Try adjusting your search filters.
 					</td>
 				</tr>
@@ -171,9 +164,6 @@
 						</td>
 						<td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700 w-32">
 							{formatDateDisplay(flask.brokenAt) || '-'}
-						</td>
-						<td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700 w-32">
-							{formatDateDisplay(flask.lowPressureAt) || '-'}
 						</td>
 					</tr>
 				{/each}

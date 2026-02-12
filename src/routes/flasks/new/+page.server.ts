@@ -23,7 +23,6 @@ export const actions: Actions = {
 		const name = formData.get('name') as string;
 		const remarksRaw = formData.get('remarks');
 		const brokenAtRaw = formData.get('brokenAt');
-		const lowPressureAtRaw = formData.get('lowPressureAt');
 
 		// Process remarks - handle null, undefined, or empty string
 		const remarksTrimmed = remarksRaw ? String(remarksRaw).trim() : '';
@@ -39,16 +38,12 @@ export const actions: Actions = {
 			const brokenAtDate = brokenAtRaw && String(brokenAtRaw).trim()
 				? new Date(String(brokenAtRaw).trim() + 'T00:00:00Z')
 				: null;
-			const lowPressureAtDate = lowPressureAtRaw && String(lowPressureAtRaw).trim()
-				? new Date(String(lowPressureAtRaw).trim() + 'T00:00:00Z')
-				: null;
 
 			// Insert the new flask
 			const insertData = {
 				name: name.trim(),
 				remarks: remarksValue,
 				brokenAt: brokenAtDate,
-				lowPressureAt: lowPressureAtDate,
 				createdUserId: locals.user.id,
 				updatedUserId: locals.user.id
 			};

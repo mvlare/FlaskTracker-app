@@ -27,7 +27,6 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 				name: flasks.name,
 				remarks: flasks.remarks,
 				brokenAt: flasks.brokenAt,
-				lowPressureAt: flasks.lowPressureAt,
 				boxName: boxes.name
 			})
 			.from(flasks)

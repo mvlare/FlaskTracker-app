@@ -9,6 +9,12 @@
 - `product_docs\research\` - Option evaluations and explorations
 - `product_docs\archive\` - Completed implementation plans
 
+## Database Operations
+
+**DO NOT run `npm run db:push` from this environment.**
+
+Database schema changes are managed separately and applied directly to the Neon PostgreSQL database. The local development environment should only update the Drizzle schema definitions to match the database state, not push changes to the database.
+
 ## Authentication & Security
 
 ### Password Hashing - CRITICAL

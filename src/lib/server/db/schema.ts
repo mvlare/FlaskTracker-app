@@ -21,7 +21,6 @@ export const flasks = pgTable(
 		name: text('name').notNull().unique(),
 		remarks: text('remarks'),
 		brokenAt: timestamptz('broken_at'),
-		lowPressureAt: timestamptz('low_pressure_at'),
 		createdAt: timestamptz('created_at').defaultNow(),
 		createdUserId: text('created_user_id').references(() => user.id, { onDelete: 'set null' }),
 		updatedAt: timestamptz('updated_at').defaultNow(),
@@ -30,31 +29,19 @@ export const flasks = pgTable(
 	(table) => [index('flasks_index_0').on(table.name)]
 );
 
-// 3. Flasks history — tracks changes to flasks (name, remarks, broken_at, low_pressure_at)
-export const flasksHist = pgTable(
-	'flasks_hist',
+// 3. Flask low pressure events — tracks multiple low pressure events per flask
+export const flaskLowPressureEvents = pgTable(
+	'flask_low_pressure_events',
 	{
 		id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
-		flaskId: integer('flask_id').notNull(),
-
-		// Old and new values for tracked fields
-		oldName: text('old_name'),
-		newName: text('new_name'),
-		oldRemarks: text('old_remarks'),
-		newRemarks: text('new_remarks'),
-		oldBrokenAt: timestamptz('old_broken_at'),
-		newBrokenAt: timestamptz('new_broken_at'),
-		oldLowPressureAt: timestamptz('old_low_pressure_at'),
-		newLowPressureAt: timestamptz('new_low_pressure_at'),
-
-		// Audit metadata
-		operation: text('operation').notNull(), // 'INSERT', 'UPDATE', 'DELETE'
-		changedAt: timestamptz('changed_at').notNull().defaultNow(),
-		changedBy: text('changed_by').references(() => user.id, { onDelete: 'set null' })
+		flaskId: integer('flask_id').notNull().references(() => flasks.id, {
+			onDelete: 'no action',
+			onUpdate: 'no action'
+		}),
+		lowPressureAt: timestamptz('low_pressure_at').notNull()
 	},
 	(table) => [
-		index('flasks_hist_flask_id_idx').on(table.flaskId),
-		index('flasks_hist_changed_at_idx').on(table.changedAt)
+		index('flask_low_pressure_events_flask_id_idx').on(table.flaskId)
 	]
 );
 

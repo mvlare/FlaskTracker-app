@@ -16,9 +16,6 @@
 	let brokenAt = $state(
 		data.flask.brokenAt ? data.flask.brokenAt.toISOString().split('T')[0] : ''
 	);
-	let lowPressureAt = $state(
-		data.flask.lowPressureAt ? data.flask.lowPressureAt.toISOString().split('T')[0] : ''
-	);
 
 	function handleCancel() {
 		goto('/');
@@ -116,40 +113,21 @@
 					</div>
 				</div>
 
-				<!-- Dates - Two Column Grid -->
-				<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-					<div>
-						<FloatingLabelInput
-							id="brokenAt"
-							name="brokenAt"
-							type="date"
-							label="Broken Date"
-							bind:value={brokenAt}
-							disabled={isSubmitting}
-						/>
-						<div class="flex items-center gap-1 mt-1">
-							<Tooltip text="Date when the flask was broken.">
-								<Info class="h-3 w-3 text-gray-400 hover:text-gray-600" />
-							</Tooltip>
-							<p class="text-xs text-gray-500">When flask was broken</p>
-						</div>
-					</div>
-
-					<div>
-						<FloatingLabelInput
-							id="lowPressureAt"
-							name="lowPressureAt"
-							type="date"
-							label="Latest Low Pressure Date"
-							bind:value={lowPressureAt}
-							disabled={isSubmitting}
-						/>
-						<div class="flex items-center gap-1 mt-1">
-							<Tooltip text="Latest low pressure date for this flask.">
-								<Info class="h-3 w-3 text-gray-400 hover:text-gray-600" />
-							</Tooltip>
-							<p class="text-xs text-gray-500">Latest low pressure date</p>
-						</div>
+				<!-- Broken Date -->
+				<div>
+					<FloatingLabelInput
+						id="brokenAt"
+						name="brokenAt"
+						type="date"
+						label="Broken Date"
+						bind:value={brokenAt}
+						disabled={isSubmitting}
+					/>
+					<div class="flex items-center gap-1 mt-1">
+						<Tooltip text="Date when the flask was broken.">
+							<Info class="h-3 w-3 text-gray-400 hover:text-gray-600" />
+						</Tooltip>
+						<p class="text-xs text-gray-500">When flask was broken</p>
 					</div>
 				</div>
 			</div>
