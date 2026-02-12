@@ -1,8 +1,8 @@
 import { db } from '$lib/server/db';
-import { flasks } from '$lib/server/db/schema';
+import { flasks, flaskLowPressureEvents } from '$lib/server/db/schema';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect, error } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	// Require authentication
@@ -23,7 +23,19 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		throw error(404, 'Flask not found');
 	}
 
-	return { flask };
+	// Load low pressure events (most recent first)
+	const lowPressureEventsData = await db.query.flaskLowPressureEvents.findMany({
+		where: eq(flaskLowPressureEvents.flaskId, flaskId),
+		orderBy: [desc(flaskLowPressureEvents.lowPressureAt)]
+	});
+
+	return {
+		flask,
+		lowPressureEvents: lowPressureEventsData.map((e) => ({
+			id: e.id,
+			lowPressureAt: e.lowPressureAt.toISOString().split('T')[0] // Date only
+		}))
+	};
 };
 
 export const actions: Actions = {
@@ -88,5 +100,91 @@ export const actions: Actions = {
 
 		// Redirect to the main flasks page (outside try-catch)
 		throw redirect(303, '/?flaskSearch=' + encodeURIComponent(name.trim()));
+	},
+
+	addLowPressureEvent: async ({ request, params, locals }) => {
+		// Auth check
+		if (!locals.session || !locals.user) {
+			return fail(401, { error: 'Unauthorized' });
+		}
+
+		const flaskId = parseInt(params.id);
+		if (isNaN(flaskId)) {
+			return fail(404, { error: 'Flask not found' });
+		}
+
+		const formData = await request.formData();
+		const lowPressureAtRaw = formData.get('lowPressureAt');
+
+		// Validate date presence
+		if (!lowPressureAtRaw || String(lowPressureAtRaw).trim() === '') {
+			return fail(400, { error: 'Low pressure date is required' });
+		}
+
+		// Parse date (UTC midnight)
+		const dateStr = String(lowPressureAtRaw).trim();
+		const lowPressureAt = new Date(dateStr + 'T00:00:00Z');
+
+		if (isNaN(lowPressureAt.getTime())) {
+			return fail(400, { error: 'Invalid date format' });
+		}
+
+		// Reject future dates (allow today)
+		const today = new Date();
+		today.setUTCHours(0, 0, 0, 0);
+		if (lowPressureAt > today) {
+			return fail(400, { error: 'Date cannot be in the future' });
+		}
+
+		try {
+			// Check for duplicates
+			const existing = await db.query.flaskLowPressureEvents.findFirst({
+				where: and(
+					eq(flaskLowPressureEvents.flaskId, flaskId),
+					eq(flaskLowPressureEvents.lowPressureAt, lowPressureAt)
+				)
+			});
+
+			if (existing) {
+				return fail(400, { error: 'This date already exists' });
+			}
+
+			// Insert new event
+			await db.insert(flaskLowPressureEvents).values({
+				flaskId,
+				lowPressureAt
+			});
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error adding low pressure event:', error);
+			return fail(500, { error: 'Failed to add low pressure event' });
+		}
+	},
+
+	deleteLowPressureEvent: async ({ request, params, locals }) => {
+		// Auth check
+		if (!locals.session || !locals.user) {
+			return fail(401, { error: 'Unauthorized' });
+		}
+
+		const formData = await request.formData();
+		const eventIdRaw = formData.get('eventId');
+		const eventId = parseInt(String(eventIdRaw));
+
+		if (isNaN(eventId)) {
+			return fail(400, { error: 'Invalid event ID' });
+		}
+
+		try {
+			await db
+				.delete(flaskLowPressureEvents)
+				.where(eq(flaskLowPressureEvents.id, eventId));
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error deleting low pressure event:', error);
+			return fail(500, { error: 'Failed to delete low pressure event' });
+		}
 	}
 };

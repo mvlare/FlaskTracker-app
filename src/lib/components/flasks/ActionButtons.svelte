@@ -85,7 +85,7 @@
 		class="flex items-center gap-2 px-4 py-2 bg-sky-500 text-gray-800 rounded-md hover:bg-sky-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors font-medium text-sm shadow-sm"
 	>
 		<Pencil class="h-4 w-4" />
-		Edit Flask
+		Flask
 	</button>
 
 	<!-- ! Issue Button -->
@@ -104,7 +104,7 @@
 		class="flex items-center gap-2 px-4 py-2 bg-sky-500 text-gray-800 rounded-md hover:bg-sky-600 transition-colors font-medium text-sm shadow-sm"
 	>
 		<FlaskInBox class="h-4 w-4" />
-		Edit Box-Flasks
+		Box-Flasks
 	</button>
 </div>
 
