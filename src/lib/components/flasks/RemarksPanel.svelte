@@ -2,6 +2,7 @@
 	import { MessageSquare, Save, X } from 'lucide-svelte';
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
+	import { formatDateDisplay } from '$lib/utils/dates';
 
 	let {
 		remarks = $bindable(''),
@@ -18,10 +19,39 @@
 	let saveMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let hasChanges = $derived(editedRemarks !== (remarks || ''));
 
+	// Low pressure date state
+	let latestLowPressureDate = $state<string | null>(null);
+	let isLoadingLowPressure = $state(false);
+	let lowPressureError = $state<string | null>(null);
+
+	// Fetch latest low pressure date
+	async function fetchLatestLowPressure(id: number) {
+		isLoadingLowPressure = true;
+		lowPressureError = null;
+		try {
+			const response = await fetch(`/api/flasks/${id}/latest-low-pressure`);
+			if (!response.ok) throw new Error('Failed to fetch');
+			const data = await response.json();
+			latestLowPressureDate = data.latestLowPressureAt;
+		} catch (err) {
+			lowPressureError = 'Unable to load';
+			latestLowPressureDate = null;
+		} finally {
+			isLoadingLowPressure = false;
+		}
+	}
+
 	// Update editedRemarks when remarks prop changes (e.g., selecting different flask)
 	$effect(() => {
 		editedRemarks = remarks || '';
 		saveMessage = null;
+
+		// Reset and fetch low pressure date when flask changes
+		latestLowPressureDate = null;
+		lowPressureError = null;
+		if (flaskId) {
+			fetchLatestLowPressure(flaskId);
+		}
 	});
 
 	function handleTabKey(event: KeyboardEvent) {
@@ -103,6 +133,20 @@
 		<div class="mb-2 text-xs text-gray-600">
 			<span class="font-medium">Flask:</span>
 			{flaskName}
+		</div>
+	{/if}
+	{#if flaskId}
+		<div class="mb-2 text-xs text-gray-600">
+			<span class="font-medium">Latest Low Pressure:</span>
+			{#if isLoadingLowPressure}
+				<span>Loading...</span>
+			{:else if lowPressureError}
+				<span class="text-red-600">{lowPressureError}</span>
+			{:else if latestLowPressureDate}
+				<span class="font-bold text-gray-800">{formatDateDisplay(latestLowPressureDate)}</span>
+			{:else}
+				<span>No events recorded</span>
+			{/if}
 		</div>
 	{/if}
 	{#if saveMessage}

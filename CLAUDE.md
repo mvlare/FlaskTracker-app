@@ -46,3 +46,25 @@ const hashedPassword = await hashPassword(plainPassword);
 - `/src/routes/admin/users/+server.ts` - user creation (uses auth.api)
 - `/src/routes/admin/users/[id]/+server.ts` - password reset (uses hashPassword)
 - `/src/routes/auth/change-password/+page.svelte` - user password change (uses authClient API)
+
+## Date Formatting
+
+**ALWAYS use DD-MM-YYYY format for date display (Netherlands locale):**
+
+This application is used in the Netherlands, so all dates must be displayed in the DD-MM-YYYY format.
+
+```typescript
+import { formatDateDisplay } from '$lib/utils/dates';
+
+// Display dates:
+const displayDate = formatDateDisplay(date); // Returns DD-MM-YYYY
+```
+
+**Important:**
+- Use the `formatDateDisplay()` utility function from `/src/lib/utils/dates.ts` for all date display
+- The format is DD-MM-YYYY (day-month-year), NOT MM-DD-YYYY or YYYY-MM-DD
+- This applies to all dates shown in the UI: flask dates, low pressure events, created/updated dates, etc.
+- When working with HTML date inputs (type="date"), remember they use YYYY-MM-DD internally but should display as DD-MM-YYYY to users
+
+**Related files:**
+- `/src/lib/utils/dates.ts` - Date formatting utilities

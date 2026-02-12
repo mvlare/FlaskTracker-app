@@ -1,7 +1,7 @@
 import { format, parseISO } from 'date-fns';
 
 /**
- * Format a date for display in YYYY-MM-DD format
+ * Format a date for display in DD-MM-YYYY format (Netherlands locale)
  * @param date - The date to format (Date object or ISO string)
  * @param timezone - User's timezone (currently unused, as we display UTC directly)
  * @returns Formatted date string or empty string if date is null/undefined
@@ -11,7 +11,7 @@ export function formatDateDisplay(date: Date | string | null | undefined): strin
 
 	try {
 		const dateObj = typeof date === 'string' ? parseISO(date) : date;
-		return format(dateObj, 'yyyy-MM-dd');
+		return format(dateObj, 'dd-MM-yyyy');
 	} catch (error) {
 		console.error('Error formatting date:', error);
 		return '';
