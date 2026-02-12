@@ -58,7 +58,7 @@
 
 		{#if showNewMenu}
 			<div
-				class="absolute bottom-full mb-1 left-0 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[160px]"
+				class="absolute bottom-full mb-1 left-0 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-40"
 			>
 				<button
 					onclick={handleNewFlask}

@@ -11,20 +11,21 @@
 	let isSubmitting = $state(false);
 
 	// Form fields - initialize from loaded data
-	let name = $state(data.flask.name);
-	let remarks = $state(data.flask.remarks || '');
-	let brokenAt = $state(
-		data.flask.brokenAt ? data.flask.brokenAt.toISOString().split('T')[0] : ''
-	);
+	let name = $state('');
+	let remarks = $state('');
+	let brokenAt = $state('');
 
 	// Low pressure events state
-	let lowPressureEvents = $state(data.lowPressureEvents || []);
+	let lowPressureEvents = $state<typeof data.lowPressureEvents>([]);
 	let newLowPressureDate = $state('');
 	let isAddingEvent = $state(false);
 	let deletingEventId = $state<number | null>(null);
 
 	// Sync with server data
 	$effect(() => {
+		name = data.flask.name;
+		remarks = data.flask.remarks || '';
+		brokenAt = data.flask.brokenAt ? data.flask.brokenAt.toISOString().split('T')[0] : '';
 		lowPressureEvents = data.lowPressureEvents || [];
 	});
 
@@ -114,6 +115,7 @@
 					<div>
 						<FloatingLabelInput
 							id="remarks"
+							name="remarks"
 							type="textarea"
 							label="Remarks"
 							bind:value={remarks}
@@ -133,6 +135,7 @@
 					<div>
 						<FloatingLabelInput
 							id="brokenAt"
+							name="brokenAt"
 							type="date"
 							label="Broken Date"
 							bind:value={brokenAt}
@@ -163,7 +166,7 @@
 
 				<div class="mt-4">
 					<!-- Compact scrollable list (max 4 visible rows) -->
-					<div class="max-h-[200px] overflow-y-auto space-y-2 mb-4">
+					<div class="max-h-50 overflow-y-auto space-y-2 mb-4">
 						{#each lowPressureEvents as event}
 							<form
 								method="POST"

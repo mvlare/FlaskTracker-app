@@ -47,17 +47,6 @@
 		</div>
 	{/if}
 
-	<!-- Success Message -->
-	{#if form?.success}
-		<div
-			class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-md mb-6"
-			role="alert"
-		>
-			<strong class="font-semibold">Success!</strong>
-			<span class="block sm:inline">Flask created successfully.</span>
-		</div>
-	{/if}
-
 	<!-- Form -->
 	<form
 		method="POST"
