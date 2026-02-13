@@ -4,6 +4,7 @@ import { json } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { hashPassword } from "better-auth/crypto";
 import type { RequestHandler } from "./$types";
+import { validateRequired, validatePassword } from "$lib/server/utils/validation";
 
 export const DELETE: RequestHandler = async ({ params, locals }) => {
 	// Require admin access
@@ -40,9 +41,15 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 	const userId = params.id;
 	const { newPassword } = await request.json();
 
-	// Validate input
-	if (!newPassword || newPassword.length < 8) {
-		return json({ error: "Password must be at least 8 characters" }, { status: 400 });
+	// Validate input using utilities
+	const passwordError = validateRequired(newPassword, 'Password');
+	if (passwordError) {
+		return json({ error: passwordError }, { status: 400 });
+	}
+
+	const passwordValidation = validatePassword(newPassword);
+	if (!passwordValidation.valid) {
+		return json({ error: passwordValidation.error }, { status: 400 });
 	}
 
 	try {

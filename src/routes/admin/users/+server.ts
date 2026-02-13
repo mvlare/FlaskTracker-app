@@ -4,6 +4,7 @@ import { auth } from "$lib/server/auth";
 import { json } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import type { RequestHandler } from "./$types";
+import { validateRequired, validatePassword, validateEmail } from "$lib/server/utils/validation";
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	// Require admin access
@@ -14,13 +15,29 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
 		const { name, email, password, isAdmin } = await request.json();
 
-		// Validate input
-		if (!name || !email || !password) {
-			return json({ error: "Name, email, and password are required" }, { status: 400 });
+		// Validate input using utilities
+		const nameError = validateRequired(name, 'Name');
+		if (nameError) {
+			return json({ error: nameError }, { status: 400 });
 		}
 
-		if (password.length < 8) {
-			return json({ error: "Password must be at least 8 characters" }, { status: 400 });
+		const emailError = validateRequired(email, 'Email');
+		if (emailError) {
+			return json({ error: emailError }, { status: 400 });
+		}
+
+		if (!validateEmail(email)) {
+			return json({ error: "Invalid email format" }, { status: 400 });
+		}
+
+		const passwordError = validateRequired(password, 'Password');
+		if (passwordError) {
+			return json({ error: passwordError }, { status: 400 });
+		}
+
+		const passwordValidation = validatePassword(password);
+		if (!passwordValidation.valid) {
+			return json({ error: passwordValidation.error }, { status: 400 });
 		}
 
 		// Check if user already exists

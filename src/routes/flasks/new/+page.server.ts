@@ -2,6 +2,9 @@ import { db } from '$lib/server/db';
 import { flasks } from '$lib/server/db/schema';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
+import { validateRequired, processRemarks, parseDateToUTC } from '$lib/server/utils/validation';
+import { handleDatabaseError } from '$lib/server/utils/error-handling';
+import { createAuditFields } from '$lib/server/utils/audit';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	// Require authentication
@@ -24,47 +27,31 @@ export const actions: Actions = {
 		const remarksRaw = formData.get('remarks');
 		const brokenAtRaw = formData.get('brokenAt');
 
-		// Process remarks - handle null, undefined, or empty string
-		const remarksTrimmed = remarksRaw ? String(remarksRaw).trim() : '';
-		const remarksValue = remarksTrimmed || null;
-
 		// Validate required fields
-		if (!name || name.trim() === '') {
-			return fail(400, { error: 'Flask name is required' });
+		const nameError = validateRequired(name, 'Flask name');
+		if (nameError) {
+			return fail(400, { error: nameError });
 		}
 
 		try {
-			// Parse dates if provided (convert to UTC)
-			const brokenAtDate = brokenAtRaw && String(brokenAtRaw).trim()
-				? new Date(String(brokenAtRaw).trim() + 'T00:00:00Z')
-				: null;
+			// Process inputs using utilities
+			const remarksValue = processRemarks(remarksRaw);
+			const brokenAtDate = parseDateToUTC(brokenAtRaw ? String(brokenAtRaw) : null);
 
-			// Insert the new flask
+			// Insert the new flask with audit trail
 			const insertData = {
 				name: name.trim(),
 				remarks: remarksValue,
 				brokenAt: brokenAtDate,
-				createdUserId: locals.user.id,
-				updatedUserId: locals.user.id
+				...createAuditFields(locals.user.id)
 			};
 
 			console.log('Inserting flask with data:', JSON.stringify(insertData, null, 2));
 
 			await db.insert(flasks).values(insertData);
 		} catch (error) {
-			console.error('Error creating flask:', error);
-
-			// Check for unique constraint violation (PostgreSQL error code 23505)
-			// Drizzle wraps the PostgreSQL error in error.cause
-			if (
-				(error as any).code === '23505' ||
-				(error as any).cause?.code === '23505' ||
-				(error instanceof Error && error.message.toLowerCase().includes('unique'))
-			) {
-				return fail(400, { error: 'A flask with this name already exists' });
-			}
-
-			return fail(500, { error: 'Failed to create flask' });
+			const { status, message } = handleDatabaseError(error, 'flask');
+			return fail(status, { error: message });
 		}
 
 		// Redirect to the main flasks page (outside try-catch)

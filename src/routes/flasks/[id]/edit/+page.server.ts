@@ -3,6 +3,14 @@ import { flasks, flaskLowPressureEvents } from '$lib/server/db/schema';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect, error } from '@sveltejs/kit';
 import { eq, desc, and } from 'drizzle-orm';
+import {
+	validateRequired,
+	processRemarks,
+	parseDateToUTC,
+	validateDateNotFuture
+} from '$lib/server/utils/validation';
+import { handleDatabaseError } from '$lib/server/utils/error-handling';
+import { updateAuditFields } from '$lib/server/utils/audit';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	// Require authentication
@@ -55,47 +63,30 @@ export const actions: Actions = {
 		const remarksRaw = formData.get('remarks');
 		const brokenAtRaw = formData.get('brokenAt');
 
-		// Process remarks - handle null, undefined, or empty string
-		const remarksTrimmed = remarksRaw ? String(remarksRaw).trim() : '';
-		const remarksValue = remarksTrimmed || null;
-
 		// Validate required fields
-		if (!name || name.trim() === '') {
-			return fail(400, { error: 'Flask name is required' });
+		const nameError = validateRequired(name, 'Flask name');
+		if (nameError) {
+			return fail(400, { error: nameError });
 		}
 
 		try {
-			// Parse dates if provided (convert to UTC)
-			const brokenAtDate =
-				brokenAtRaw && String(brokenAtRaw).trim()
-					? new Date(String(brokenAtRaw).trim() + 'T00:00:00Z')
-					: null;
+			// Process inputs using utilities
+			const remarksValue = processRemarks(remarksRaw);
+			const brokenAtDate = parseDateToUTC(brokenAtRaw ? String(brokenAtRaw) : null);
 
-			// Update the flask
+			// Update the flask with audit trail
 			await db
 				.update(flasks)
 				.set({
 					name: name.trim(),
 					remarks: remarksValue,
 					brokenAt: brokenAtDate,
-					updatedAt: new Date(),
-					updatedUserId: locals.user.id
+					...updateAuditFields(locals.user.id)
 				})
 				.where(eq(flasks.id, flaskId));
 		} catch (error) {
-			console.error('Error updating flask:', error);
-
-			// Check for unique constraint violation (PostgreSQL error code 23505)
-			// Drizzle wraps the PostgreSQL error in error.cause
-			if (
-				(error as any).code === '23505' ||
-				(error as any).cause?.code === '23505' ||
-				(error instanceof Error && error.message.toLowerCase().includes('unique'))
-			) {
-				return fail(400, { error: 'A flask with this name already exists' });
-			}
-
-			return fail(500, { error: 'Failed to update flask' });
+			const { status, message } = handleDatabaseError(error, 'flask');
+			return fail(status, { error: message });
 		}
 
 		// Redirect to the main flasks page (outside try-catch)
@@ -117,22 +108,23 @@ export const actions: Actions = {
 		const lowPressureAtRaw = formData.get('lowPressureAt');
 
 		// Validate date presence
-		if (!lowPressureAtRaw || String(lowPressureAtRaw).trim() === '') {
-			return fail(400, { error: 'Low pressure date is required' });
+		const dateError = validateRequired(
+			lowPressureAtRaw ? String(lowPressureAtRaw) : null,
+			'Low pressure date'
+		);
+		if (dateError) {
+			return fail(400, { error: dateError });
 		}
 
 		// Parse date (UTC midnight)
-		const dateStr = String(lowPressureAtRaw).trim();
-		const lowPressureAt = new Date(dateStr + 'T00:00:00Z');
+		const lowPressureAt = parseDateToUTC(String(lowPressureAtRaw));
 
-		if (isNaN(lowPressureAt.getTime())) {
+		if (!lowPressureAt || isNaN(lowPressureAt.getTime())) {
 			return fail(400, { error: 'Invalid date format' });
 		}
 
 		// Reject future dates (allow today)
-		const today = new Date();
-		today.setUTCHours(0, 0, 0, 0);
-		if (lowPressureAt > today) {
+		if (!validateDateNotFuture(lowPressureAt)) {
 			return fail(400, { error: 'Date cannot be in the future' });
 		}
 

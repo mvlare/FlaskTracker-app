@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { MessageSquare, Save, X } from 'lucide-svelte';
+	import { MessageSquare, Save, X, GitBranch, ChevronRight } from 'lucide-svelte';
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { formatDateDisplay } from '$lib/utils/dates';
@@ -165,4 +165,33 @@
 		disabled={!flaskId}
 		class="w-full border border-gray-200 rounded p-3 bg-gray-50 min-h-[320px] text-sm text-gray-800 font-mono resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:bg-gray-100"
 	></textarea>
+
+	<!-- Flask Tree Section -->
+	{#if flaskId}
+		<div class="mt-4 border-t border-gray-200 pt-4">
+			<details class="group">
+				<summary class="cursor-pointer list-none">
+					<div class="flex items-center gap-2 py-1 text-gray-700 font-medium text-sm">
+						<ChevronRight
+							class="h-3 w-3 transition-transform duration-200 group-open:rotate-90"
+						/>
+						<GitBranch class="h-3 w-3" />
+						<span>Flask Tree</span>
+					</div>
+				</summary>
+
+				<div class="mt-3">
+					{#await import('$lib/components/flasks/FlaskTreeView.svelte')}
+						<div class="text-xs text-gray-500 py-2">Loading tree...</div>
+					{:then { default: FlaskTreeView }}
+						<div class="bg-gray-50 rounded-md border border-gray-200 overflow-hidden">
+							<FlaskTreeView flaskId={flaskId} compact={true} />
+						</div>
+					{:catch}
+						<div class="text-xs text-red-600 py-2">Failed to load tree component</div>
+					{/await}
+				</div>
+			</details>
+		</div>
+	{/if}
 </div>

@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import { FlaskConical, ArrowLeft, Info, ChevronRight, X, Plus } from 'lucide-svelte';
+	import { FlaskConical, ArrowLeft, Info, ChevronRight, X, Plus, GitBranch } from 'lucide-svelte';
 	import FloatingLabelInput from '$lib/components/form/FloatingLabelInput.svelte';
 	import Tooltip from '$lib/components/form/Tooltip.svelte';
+	import FlaskTreeView from '$lib/components/flasks/FlaskTreeView.svelte';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -241,25 +242,44 @@
 		</div>
 	</div>
 
+	<!-- Flask Reference Tree Section -->
+	<div class="bg-white shadow-md rounded-lg p-4 mb-6">
+		<details class="group">
+			<summary class="cursor-pointer list-none">
+				<div class="flex items-center gap-2 py-2 text-gray-700 font-semibold">
+					<ChevronRight
+						class="h-4 w-4 transition-transform duration-200 group-open:rotate-90"
+					/>
+					<GitBranch class="h-4 w-4" />
+					<span>Flask Reference Tree</span>
+				</div>
+			</summary>
+
+			<div class="mt-4 bg-gray-50 rounded-lg p-3">
+				<FlaskTreeView flaskId={data.flask.id} compact={false} />
+			</div>
+		</details>
+	</div>
+
 	<!-- Action Buttons -->
 	<div class="bg-white shadow-md rounded-lg p-4">
 		<div class="flex gap-4 justify-end">
-			<button
-				type="button"
-				onclick={handleCancel}
-				disabled={isSubmitting}
-				class="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
-			>
-				Cancel
-			</button>
-			<button
-				type="submit"
-				form="flaskUpdateForm"
-				disabled={isSubmitting || !name.trim()}
-				class="px-6 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors font-medium"
-			>
-				{isSubmitting ? 'Updating...' : 'Update Flask'}
-			</button>
+				<button
+					type="button"
+					onclick={handleCancel}
+					disabled={isSubmitting}
+					class="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+				>
+					Cancel
+				</button>
+				<button
+					type="submit"
+					form="flaskUpdateForm"
+					disabled={isSubmitting || !name.trim()}
+					class="px-6 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors font-medium"
+				>
+					{isSubmitting ? 'Updating...' : 'Update Flask'}
+				</button>
 		</div>
 	</div>
 </div>

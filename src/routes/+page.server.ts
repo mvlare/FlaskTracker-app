@@ -3,6 +3,8 @@ import { flasks, boxes, boxContentLines, boxContentHeaders } from '$lib/server/d
 import { eq, ilike, or, sql, desc, asc } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
+import { processRemarks } from '$lib/server/utils/validation';
+import { updateAuditFields } from '$lib/server/utils/audit';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
 	// Require authentication
@@ -130,29 +132,21 @@ export const actions: Actions = {
 		const flaskId = parseInt(formData.get('flaskId') as string);
 		const remarksRaw = formData.get('remarks');
 
-		// Process remarks - handle null, undefined, or empty string
-		const remarksTrimmed = remarksRaw ? String(remarksRaw).trim() : '';
-		const remarksValue = remarksTrimmed || null;
-
 		// Validate input
 		if (!flaskId || isNaN(flaskId)) {
 			return fail(400, { error: 'Invalid flask ID' });
 		}
 
 		try {
-			// Update the flask remarks in the database with audit trail
+			// Update the flask remarks with audit trail
 			const updateData = {
-				remarks: remarksValue,
-				updatedAt: new Date(),
-				updatedUserId: locals.user.id
+				remarks: processRemarks(remarksRaw),
+				...updateAuditFields(locals.user.id)
 			};
 
 			console.log('Updating remarks for flask', flaskId, ':', JSON.stringify(updateData, null, 2));
 
-			await db
-				.update(flasks)
-				.set(updateData)
-				.where(eq(flasks.id, flaskId));
+			await db.update(flasks).set(updateData).where(eq(flasks.id, flaskId));
 
 			return { success: true };
 		} catch (error) {
