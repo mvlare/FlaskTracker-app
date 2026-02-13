@@ -14,7 +14,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const limit = 15;
 	const offset = (page - 1) * limit;
 
-	const flaskSearch = url.searchParams.get('flaskSearch') ?? 'UU-1-';
+	const flaskSearch = url.searchParams.get('flaskSearch') ?? '';
 	const boxSearch = url.searchParams.get('boxSearch') || '';
 	const sortBy = url.searchParams.get('sortBy') || 'flask';
 	const sortOrder = url.searchParams.get('sortOrder') || 'desc';
@@ -40,8 +40,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 
 		// Apply filters
 		const conditions = [];
-		// Only filter flasks if search is not empty and not just the default prefix
-		if (flaskSearch && flaskSearch !== 'UU-1-') {
+		// Only filter flasks if search is not empty
+		if (flaskSearch) {
 			conditions.push(ilike(flasks.name, `%${flaskSearch}%`));
 		}
 		if (boxSearch) {
