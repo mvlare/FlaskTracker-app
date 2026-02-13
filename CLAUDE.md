@@ -8,7 +8,7 @@
 - `product_docs\*.md` - Feature specifications (numbered 0100+)
 - `product_docs\research\` - Option evaluations and explorations
 - `product_docs\archive\` - Completed implementation plans
-- `system_docs\refactorings\` - Major refactoring artifacts (testing checklists, notes)
+- `product_docs\refactorings\` - Major refactoring artifacts (testing checklists, notes)
 
 ## Database Operations
 
