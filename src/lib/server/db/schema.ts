@@ -1,4 +1,4 @@
-import { integer, pgTable, text, timestamp, index } from 'drizzle-orm/pg-core';
+import { integer, pgTable, text, timestamp, index, uniqueIndex } from 'drizzle-orm/pg-core';
 import { user } from './auth-schema';
 
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true });
@@ -61,20 +61,27 @@ export const boxes = pgTable(
 );
 
 // 5. Flasks ref — FK → flasks (×2), FK → flask_ref_type, FK to user for audit
-export const flasksRef = pgTable('flasks_ref', {
-	id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
-	originalFlaskId: integer('original_flask_id')
-		.notNull()
-		.references(() => flasks.id),
-	newFlaskId: integer('new_flask_id')
-		.notNull()
-		.references(() => flasks.id),
-	flaskRefTypeId: integer('flask_ref_type_id').notNull().references(() => flaskRefType.id),
-	createdAt: timestamptz('created_at').defaultNow(),
-	createdUserId: text('created_user_id').references(() => user.id, { onDelete: 'set null' }),
-	updatedAt: timestamptz('updated_at').defaultNow(),
-	updatedUserId: text('updated_user_id').references(() => user.id, { onDelete: 'set null' })
-});
+// Unique constraint on (original_flask_id, new_flask_id) prevents duplicate relationships
+export const flasksRef = pgTable(
+	'flasks_ref',
+	{
+		id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+		originalFlaskId: integer('original_flask_id')
+			.notNull()
+			.references(() => flasks.id),
+		newFlaskId: integer('new_flask_id')
+			.notNull()
+			.references(() => flasks.id),
+		flaskRefTypeId: integer('flask_ref_type_id').notNull().references(() => flaskRefType.id),
+		createdAt: timestamptz('created_at').defaultNow(),
+		createdUserId: text('created_user_id').references(() => user.id, { onDelete: 'set null' }),
+		updatedAt: timestamptz('updated_at').defaultNow(),
+		updatedUserId: text('updated_user_id').references(() => user.id, { onDelete: 'set null' })
+	},
+	(table) => [
+		uniqueIndex('flasks_ref_unique_index_1').on(table.originalFlaskId, table.newFlaskId)
+	]
+);
 
 // 6. Box content headers — FK → boxes, FK to user for audit
 export const boxContentHeaders = pgTable('box_content_headers', {

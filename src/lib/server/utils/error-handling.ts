@@ -84,3 +84,31 @@ export function formatUniqueConstraintError(
 ): string {
 	return `A ${entityName} with this ${fieldName} already exists`;
 }
+
+/**
+ * Handles flask reference database errors with specific messages
+ * @param error - Error object from database operation
+ * @returns Object with status code and error message
+ */
+export function handleFlaskRefError(error: unknown): { status: number; message: string } {
+	console.error('Error with flask reference:', error);
+
+	if (isUniqueConstraintViolation(error)) {
+		return {
+			status: 400,
+			message: 'This flask reference relationship already exists'
+		};
+	}
+
+	if (isForeignKeyViolation(error)) {
+		return {
+			status: 400,
+			message: 'One or both flask IDs do not exist'
+		};
+	}
+
+	return {
+		status: 500,
+		message: 'Failed to save flask reference'
+	};
+}

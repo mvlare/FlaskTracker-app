@@ -88,3 +88,24 @@ export function validateEmail(email: string): boolean {
 	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 	return emailRegex.test(email);
 }
+
+/**
+ * Validates flask reference IDs
+ * @param originalFlaskId - ID of original flask
+ * @param newFlaskId - ID of new flask
+ * @returns Error message if invalid, null if valid
+ */
+export function validateFlaskReference(
+	originalFlaskId: number | null | undefined,
+	newFlaskId: number | null | undefined
+): string | null {
+	if (!originalFlaskId || !newFlaskId) {
+		return 'Both original and new flask must be specified';
+	}
+
+	if (originalFlaskId === newFlaskId) {
+		return 'Original flask and new flask cannot be the same';
+	}
+
+	return null;
+}
