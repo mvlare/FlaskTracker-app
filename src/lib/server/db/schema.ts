@@ -1,4 +1,5 @@
 import { integer, pgTable, text, timestamp, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
 import { user } from './auth-schema';
 
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true });
@@ -114,6 +115,30 @@ export const boxContentLines = pgTable('box_content_lines', {
 	updatedAt: timestamptz('updated_at').defaultNow(),
 	updatedUserId: text('updated_user_id').references(() => user.id, { onDelete: 'set null' })
 });
+
+// Relations for box content tables
+export const boxesRelations = relations(boxes, ({ many }) => ({
+	headers: many(boxContentHeaders)
+}));
+
+export const boxContentHeadersRelations = relations(boxContentHeaders, ({ one, many }) => ({
+	box: one(boxes, {
+		fields: [boxContentHeaders.boxId],
+		references: [boxes.id]
+	}),
+	lines: many(boxContentLines)
+}));
+
+export const boxContentLinesRelations = relations(boxContentLines, ({ one }) => ({
+	header: one(boxContentHeaders, {
+		fields: [boxContentLines.boxContentHeaderId],
+		references: [boxContentHeaders.id]
+	}),
+	flask: one(flasks, {
+		fields: [boxContentLines.flaskId],
+		references: [flasks.id]
+	})
+}));
 
 // Export Better Auth tables
 export * from './auth-schema';

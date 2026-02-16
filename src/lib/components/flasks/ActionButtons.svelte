@@ -1,11 +1,10 @@
 <script lang="ts">
-	import { Plus, Pencil, ChevronDown, FlaskConical, Box, SquarePlus } from 'lucide-svelte';
+	import { Plus, Pencil, ChevronDown, FlaskConical, Box, BaggageClaim } from 'lucide-svelte';
 	import { goto } from '$app/navigation';
 
 	let { selectedFlaskId = null }: { selectedFlaskId?: number | null } = $props();
 
 	let showNewMenu = $state(false);
-	let showBoxSelector = $state(false);
 
 	function handleNewFlask() {
 		goto('/flasks/new');
@@ -24,7 +23,7 @@
 	}
 
 	function handleBoxFlasks() {
-		showBoxSelector = true;
+		goto('/box-content');
 	}
 
 	// Close menu when clicking outside
@@ -87,30 +86,12 @@
 		Flask
 	</button>
 
-	<!-- Edit Box-Flasks Button -->
+	<!-- Box Shipments Button -->
 	<button
 		onclick={handleBoxFlasks}
 		class="flex items-center gap-2 px-4 py-2 bg-sky-500 text-gray-800 rounded-md hover:bg-sky-600 transition-colors font-medium text-sm shadow-sm"
 	>
-		<SquarePlus class="h-4 w-4" />
-		Box-Flasks
+		<BaggageClaim class="h-4 w-4" />
+		Box shipments
 	</button>
 </div>
-
-<!-- Box Selector Modal -->
-{#if showBoxSelector}
-	{#await import('$lib/components/boxes/BoxSelector.svelte')}
-		<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-			<div class="bg-white rounded-lg p-4">Loading...</div>
-		</div>
-	{:then { default: BoxSelector }}
-		<BoxSelector
-			onSelect={(boxId) => {
-				console.log('Selected box:', boxId);
-				showBoxSelector = false;
-				// Future: goto(`/boxes/${boxId}/content`)
-			}}
-			onClose={() => (showBoxSelector = false)}
-		/>
-	{/await}
-{/if}
