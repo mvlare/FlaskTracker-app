@@ -2,6 +2,7 @@
 	import type { PageData } from "./$types";
 	import { Eye, EyeOff, Home } from "lucide-svelte";
 	import { goto } from "$app/navigation";
+	import { formatDateDisplay } from "$lib/utils/dates";
 
 	let { data }: { data: PageData } = $props();
 
@@ -270,7 +271,7 @@
 								<span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-800">User</span>
 							{/if}
 						</td>
-						<td class="px-6 py-4">{new Date(user.createdAt).toLocaleDateString()}</td>
+						<td class="px-6 py-4">{formatDateDisplay(user.createdAt)}</td>
 						<td class="px-6 py-4">
 							{#if deleteUserConfirm?.id === user.id}
 								<!-- Inline delete confirmation -->

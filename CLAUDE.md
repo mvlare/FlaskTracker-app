@@ -50,25 +50,85 @@ const hashedPassword = await hashPassword(plainPassword);
 
 ## Date Formatting
 
-**ALWAYS use DD-MM-YYYY format for date display (Netherlands locale):**
+**ALWAYS use DD-MM-YYYY format with HYPHENS for date display (Netherlands locale):**
 
-This application is used in the Netherlands, so all dates must be displayed in the DD-MM-YYYY format.
+This application is used in the Netherlands, so all dates must be displayed in the DD-MM-YYYY format with hyphens.
 
 ```typescript
 import { formatDateDisplay } from '$lib/utils/dates';
 
 // Display dates:
-const displayDate = formatDateDisplay(date); // Returns DD-MM-YYYY
+const displayDate = formatDateDisplay(date); // Returns DD-MM-YYYY (with hyphens)
 ```
 
-**Important:**
-- Use the `formatDateDisplay()` utility function from `/src/lib/utils/dates.ts` for all date display
+**Critical Rules:**
+- ✅ **ALWAYS** use the `formatDateDisplay()` utility function from `/src/lib/utils/dates.ts` for all date display
+- ✅ **ALWAYS** use hyphens: `DD-MM-YYYY` (e.g., "16-02-2026")
+- ❌ **NEVER** use slashes: `DD/MM/YYYY` or `MM/DD/YYYY`
+- ❌ **NEVER** use browser methods like `toLocaleDateString()`, `toLocaleString()`, or `toDateString()`
+- ❌ **NEVER** format dates manually or with other libraries
 - The format is DD-MM-YYYY (day-month-year), NOT MM-DD-YYYY or YYYY-MM-DD
-- This applies to all dates shown in the UI: flask dates, low pressure events, created/updated dates, etc.
+- This applies to ALL dates shown in the UI: flask dates, low pressure events, created/updated dates, user created dates, etc.
 - When working with HTML date inputs (type="date"), remember they use YYYY-MM-DD internally but should display as DD-MM-YYYY to users
+
+**Why this matters:**
+- Consistency across the entire application - all dates look the same
+- Netherlands locale expects day-month-year order
+- Hyphens are more readable and consistent than slashes
+- Browser methods use locale settings which vary by user and aren't reliable
 
 **Related files:**
 - `/src/lib/utils/dates.ts` - Date formatting utilities
+
+### Date Input Components
+
+**ALWAYS use FloatingLabelDatePicker for editable date inputs:**
+
+For date input fields where users need to select or enter dates, use the `FloatingLabelDatePicker` component instead of native HTML date inputs (`<input type="date">`).
+
+```typescript
+import FloatingLabelDatePicker from '$lib/components/form/FloatingLabelDatePicker.svelte';
+
+<FloatingLabelDatePicker
+	id="brokenAt"
+	name="brokenAt"
+	label="Broken Date"
+	bind:value={brokenAt}
+	disabled={isSubmitting}
+	placeholder="dd-mm-yyyy"
+/>
+```
+
+**Why use FloatingLabelDatePicker:**
+- ✅ Displays dates in **dd-mm-yyyy format** with hyphens (consistent with Netherlands locale)
+- ✅ Submits dates in **yyyy-mm-dd format** to server (HTML standard, compatible with `parseDateToUTC()`)
+- ✅ Maintains floating label pattern for visual consistency
+- ✅ Provides better UX than native browser date inputs (no browser-controlled format hints)
+- ✅ Uses a calendar popup for easy date selection
+- ✅ Includes "Today" and "Clear" buttons for convenience
+
+**Component props:**
+- `id`, `name`, `label` - Standard form field properties
+- `value` - Bindable string in yyyy-mm-dd format for form submission
+- `required`, `disabled`, `placeholder` - Optional form controls
+
+**Date flow:**
+```
+User sees:        dd-mm-yyyy (Netherlands locale with hyphens)
+Component state:  CalendarDate (@internationalized/date)
+Form submission:  yyyy-mm-dd (HTML standard)
+Server receives:  yyyy-mm-dd (parseDateToUTC handles this)
+Database stores:  timestamptz UTC
+```
+
+**When NOT to use FloatingLabelDatePicker:**
+- For readonly date displays - use `formatDateDisplay()` directly instead
+- For text inputs - use `FloatingLabelInput` instead
+
+**Related files:**
+- `/src/lib/components/form/FloatingLabelDatePicker.svelte` - Date picker component
+- `/src/lib/components/form/FloatingLabelInput.svelte` - Text input component (for comparison)
+- `/src/lib/utils/dates.ts` - Date conversion utilities used by the component
 
 ## Coding Standards
 

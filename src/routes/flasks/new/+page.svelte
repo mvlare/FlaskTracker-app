@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { FlaskConical, ArrowLeft, Info, ChevronRight } from 'lucide-svelte';
 	import FloatingLabelInput from '$lib/components/form/FloatingLabelInput.svelte';
+	import FloatingLabelDatePicker from '$lib/components/form/FloatingLabelDatePicker.svelte';
 	import Tooltip from '$lib/components/form/Tooltip.svelte';
 	import type { ActionData } from './$types';
 
@@ -112,19 +113,19 @@
 
 				<!-- Broken Date -->
 				<div>
-					<FloatingLabelInput
+					<FloatingLabelDatePicker
 						id="brokenAt"
 						name="brokenAt"
-						type="date"
 						label="Broken Date"
 						bind:value={brokenAt}
 						disabled={isSubmitting}
+						placeholder="dd-mm-yyyy"
 					/>
 					<div class="flex items-center gap-1 mt-1">
-						<Tooltip text="Date when the flask was broken.">
+						<Tooltip text="Date when the flask was broken (format: dd-mm-yyyy).">
 							<Info class="h-3 w-3 text-gray-400 hover:text-gray-600" />
 						</Tooltip>
-						<p class="text-xs text-gray-500">When flask was broken</p>
+						<p class="text-xs text-gray-500">When flask was broken (format: dd-mm-yyyy)</p>
 					</div>
 				</div>
 			</div>

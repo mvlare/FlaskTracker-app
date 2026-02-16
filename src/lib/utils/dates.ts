@@ -1,4 +1,5 @@
 import { format, parseISO } from 'date-fns';
+import { CalendarDate } from '@internationalized/date';
 
 /**
  * Format a date for display in DD-MM-YYYY format (Netherlands locale)
@@ -32,5 +33,57 @@ export function parseToUTC(dateString: string | null | undefined): Date | null {
 	} catch (error) {
 		console.error('Error parsing date:', error);
 		return null;
+	}
+}
+
+/**
+ * Convert a JavaScript Date to CalendarDate for use with date picker
+ * @param date - The date to convert (Date object)
+ * @returns CalendarDate or undefined if date is null
+ */
+export function dateToCalendarDate(date: Date | null): CalendarDate | undefined {
+	if (!date) return undefined;
+
+	try {
+		const year = date.getUTCFullYear();
+		const month = date.getUTCMonth() + 1; // CalendarDate months are 1-indexed
+		const day = date.getUTCDate();
+		return new CalendarDate(year, month, day);
+	} catch (error) {
+		console.error('Error converting Date to CalendarDate:', error);
+		return undefined;
+	}
+}
+
+/**
+ * Convert a CalendarDate to JavaScript Date (UTC midnight)
+ * @param calendarDate - The CalendarDate to convert
+ * @returns Date object (UTC midnight) or null if undefined
+ */
+export function calendarDateToDate(calendarDate: CalendarDate | undefined): Date | null {
+	if (!calendarDate) return null;
+
+	try {
+		// Create UTC Date at midnight
+		return new Date(Date.UTC(calendarDate.year, calendarDate.month - 1, calendarDate.day));
+	} catch (error) {
+		console.error('Error converting CalendarDate to Date:', error);
+		return null;
+	}
+}
+
+/**
+ * Format a date for form submission in YYYY-MM-DD format (HTML standard)
+ * @param date - The date to format (Date object)
+ * @returns Date string in YYYY-MM-DD format or empty string if null
+ */
+export function formatForSubmission(date: Date | null): string {
+	if (!date) return '';
+
+	try {
+		return format(date, 'yyyy-MM-dd');
+	} catch (error) {
+		console.error('Error formatting date for submission:', error);
+		return '';
 	}
 }

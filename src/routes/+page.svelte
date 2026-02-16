@@ -46,6 +46,7 @@
 				sortBy={data.filters.sortBy}
 				sortOrder={data.filters.sortOrder}
 				onSelectFlask={handleSelectFlask}
+				hasActiveSearch={!!data.filters.flaskSearch || !!data.filters.boxSearch}
 			/>
 		</div>
 		<div class="lg:col-span-1">

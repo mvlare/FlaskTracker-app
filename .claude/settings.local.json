@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npm run check:*)",
       "WebFetch(domain:www.better-auth.com)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(grep:*)"
     ]
   }
 }

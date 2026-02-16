@@ -1,5 +1,5 @@
 import { db } from '$lib/server/db';
-import { flasks, flaskLowPressureEvents } from '$lib/server/db/schema';
+import { flasks, flaskLowPressureEvents, flasksRef, flaskRefType } from '$lib/server/db/schema';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect, error } from '@sveltejs/kit';
 import { eq, desc, and } from 'drizzle-orm';
@@ -9,8 +9,12 @@ import {
 	parseDateToUTC,
 	validateDateNotFuture
 } from '$lib/server/utils/validation';
-import { handleDatabaseError } from '$lib/server/utils/error-handling';
-import { updateAuditFields } from '$lib/server/utils/audit';
+import {
+	handleDatabaseError,
+	handleFlaskRefError,
+	isUniqueConstraintViolation
+} from '$lib/server/utils/error-handling';
+import { updateAuditFields, createAuditFields } from '$lib/server/utils/audit';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	// Require authentication
@@ -177,6 +181,105 @@ export const actions: Actions = {
 		} catch (error) {
 			console.error('Error deleting low pressure event:', error);
 			return fail(500, { error: 'Failed to delete low pressure event' });
+		}
+	},
+
+	addRepairedFlask: async ({ request, params, locals }) => {
+		// Auth check
+		if (!locals.session || !locals.user) {
+			return fail(401, { error: 'Unauthorized' });
+		}
+
+		// Parse flask ID
+		const flaskId = parseInt(params.id);
+		if (isNaN(flaskId)) {
+			return fail(404, { error: 'Flask not found' });
+		}
+
+		// Validate repaired flask name
+		const formData = await request.formData();
+		const repairedFlaskName = formData.get('repairedFlaskName') as string;
+		const brokenAtRaw = formData.get('brokenAt');
+
+		const nameError = validateRequired(repairedFlaskName, 'Repaired flask name');
+		if (nameError) {
+			return fail(400, { error: nameError });
+		}
+
+		// Parse broken date
+		const brokenAtDate = parseDateToUTC(brokenAtRaw ? String(brokenAtRaw) : null);
+		if (!brokenAtDate) {
+			return fail(400, { error: 'Broken date is required to create a repaired flask' });
+		}
+
+		try {
+			// Query flask_ref_type by name
+			const repairedType = await db.query.flaskRefType.findFirst({
+				where: eq(flaskRefType.name, 'Repaired'),
+				columns: { id: true }
+			});
+
+			if (!repairedType) {
+				return fail(500, { error: 'Repaired reference type not found in database' });
+			}
+
+			// Find the root original_flask_id for this tree
+			// If the current flask is referenced as newFlaskId, use its originalFlaskId
+			// Otherwise, the current flask is the root, so use its own ID
+			const currentFlaskRef = await db.query.flasksRef.findFirst({
+				where: eq(flasksRef.newFlaskId, flaskId),
+				columns: { originalFlaskId: true }
+			});
+
+			const rootOriginalFlaskId = currentFlaskRef ? currentFlaskRef.originalFlaskId : flaskId;
+
+			// Update the original flask's broken date
+			await db
+				.update(flasks)
+				.set({
+					brokenAt: brokenAtDate,
+					...updateAuditFields(locals.user.id)
+				})
+				.where(eq(flasks.id, flaskId));
+
+			// Insert new flask first
+			const [newFlask] = await db
+				.insert(flasks)
+				.values({
+					name: repairedFlaskName.trim(),
+					remarks: null,
+					brokenAt: null,
+					...createAuditFields(locals.user.id)
+				})
+				.returning({ id: flasks.id });
+
+			// Then insert flask reference using the root original flask ID
+			try {
+				await db.insert(flasksRef).values({
+					originalFlaskId: rootOriginalFlaskId,
+					newFlaskId: newFlask.id,
+					flaskRefTypeId: repairedType.id,
+					...createAuditFields(locals.user.id)
+				});
+			} catch (refError) {
+				// If reference insert fails, handle the error
+				// Note: The flask was already created at this point
+				const { status, message } = handleFlaskRefError(refError);
+				return fail(status, {
+					error: `${message}. The flask "${repairedFlaskName.trim()}" was created but the reference link failed.`
+				});
+			}
+
+			return { success: true };
+		} catch (error) {
+			// Handle unique constraint on flask name
+			if (isUniqueConstraintViolation(error)) {
+				return fail(400, { error: 'A flask with this name already exists' });
+			}
+
+			// Handle other errors during flask creation
+			const { status, message } = handleDatabaseError(error, 'flask');
+			return fail(status, { error: message });
 		}
 	}
 };

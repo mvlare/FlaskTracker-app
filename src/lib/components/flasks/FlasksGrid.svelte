@@ -17,15 +17,17 @@
 		flasks = [],
 		sortBy = 'flask',
 		sortOrder = 'desc',
-		onSelectFlask
+		onSelectFlask,
+		hasActiveSearch = false
 	}: {
 		flasks: Flask[];
 		sortBy?: string;
 		sortOrder?: string;
 		onSelectFlask?: (flask: Flask) => void;
+		hasActiveSearch?: boolean;
 	} = $props();
 
-	let selectedIndex = $state(0);
+	let selectedIndex = $state(-1);
 	let tableRef: HTMLTableElement;
 
 	function handleSort(column: string) {
@@ -59,14 +61,16 @@
 
 		if (event.key === 'ArrowDown') {
 			event.preventDefault();
-			selectedIndex = Math.min(selectedIndex + 1, flasks.length - 1);
+			// If nothing selected, start at 0, otherwise move down
+			selectedIndex = selectedIndex === -1 ? 0 : Math.min(selectedIndex + 1, flasks.length - 1);
 			if (onSelectFlask && flasks[selectedIndex]) {
 				onSelectFlask(flasks[selectedIndex]);
 			}
 			scrollToRow(selectedIndex);
 		} else if (event.key === 'ArrowUp') {
 			event.preventDefault();
-			selectedIndex = Math.max(selectedIndex - 1, 0);
+			// If nothing selected, start at 0, otherwise move up
+			selectedIndex = selectedIndex === -1 ? 0 : Math.max(selectedIndex - 1, 0);
 			if (onSelectFlask && flasks[selectedIndex]) {
 				onSelectFlask(flasks[selectedIndex]);
 			}
@@ -86,8 +90,9 @@
 		if (tableRef) {
 			tableRef.focus();
 		}
-		// Select first flask by default
-		if (flasks.length > 0 && onSelectFlask) {
+		// Auto-select first flask if there's an active search
+		if (hasActiveSearch && flasks.length > 0 && onSelectFlask) {
+			selectedIndex = 0;
 			onSelectFlask(flasks[0]);
 		}
 	});

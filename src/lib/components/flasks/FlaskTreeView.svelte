@@ -8,7 +8,12 @@
 		flask_ref_type_name: string;
 	}
 
-	let { flaskId, compact = false }: { flaskId: number; compact?: boolean } = $props();
+	let {
+		flaskId,
+		compact = false,
+		refreshKey = $bindable(0),
+		currentFlaskName = undefined
+	}: { flaskId: number; compact?: boolean; refreshKey?: number; currentFlaskName?: string } = $props();
 
 	let treeData = $state<TreeRow[]>([]);
 	let isLoading = $state(false);
@@ -30,8 +35,10 @@
 		}
 	}
 
-	// Fetch when flaskId changes
+	// Fetch when flaskId or refreshKey changes
 	$effect(() => {
+		// Access refreshKey to make it a tracked dependency
+		refreshKey;
 		if (flaskId) {
 			fetchTreeData(flaskId);
 		}
@@ -81,13 +88,23 @@
 			</thead>
 			<tbody class="bg-white divide-y divide-gray-200">
 				{#each treeData as row}
-					<tr class="hover:bg-gray-50 transition-colors">
+					<tr
+						class="hover:bg-gray-50 transition-colors"
+						class:bg-blue-50={currentFlaskName && row.flask_name === currentFlaskName}
+						class:border-l-4={currentFlaskName && row.flask_name === currentFlaskName}
+						class:border-blue-500={currentFlaskName && row.flask_name === currentFlaskName}
+					>
 						{#if !compact}
 							<td class="px-2 py-3 whitespace-nowrap text-sm text-gray-900">
 								{row.flask_id}
 							</td>
 						{/if}
-						<td class="{compact ? 'px-1.5 py-2 text-xs' : 'px-2 py-3 text-sm'} whitespace-nowrap font-medium text-gray-900">
+						<td
+							class="{compact ? 'px-1.5 py-2 text-xs' : 'px-2 py-3 text-sm'} whitespace-nowrap font-medium"
+							class:text-blue-900={currentFlaskName && row.flask_name === currentFlaskName}
+							class:font-bold={currentFlaskName && row.flask_name === currentFlaskName}
+							class:text-gray-900={!currentFlaskName || row.flask_name !== currentFlaskName}
+						>
 							{row.flask_name}
 						</td>
 						<td class="{compact ? 'px-1.5 py-2' : 'px-2 py-3'} whitespace-nowrap">
