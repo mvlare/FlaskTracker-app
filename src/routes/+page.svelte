@@ -39,6 +39,8 @@
 		bind:boxSearch={data.filters.boxSearch}
 	/>
 
+	<ActionButtons selectedFlaskId={selectedFlask?.id || null} />
+
 	<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-3">
 		<div class="lg:col-span-2">
 			<FlasksGrid
@@ -57,8 +59,6 @@
 			/>
 		</div>
 	</div>
-
-	<ActionButtons selectedFlaskId={selectedFlask?.id || null} />
 
 	<Pagination
 		currentPage={data.pagination.page}

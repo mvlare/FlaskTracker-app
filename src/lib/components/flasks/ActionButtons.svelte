@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { Plus, Pencil, ChevronDown, FlaskConical, Box } from 'lucide-svelte';
-	import { FlaskInBox } from '$lib/components/icons';
+	import { Plus, Pencil, ChevronDown, FlaskConical, Box, SquarePlus } from 'lucide-svelte';
 	import { goto } from '$app/navigation';
 
 	let { selectedFlaskId = null }: { selectedFlaskId?: number | null } = $props();
@@ -93,7 +92,7 @@
 		onclick={handleBoxFlasks}
 		class="flex items-center gap-2 px-4 py-2 bg-sky-500 text-gray-800 rounded-md hover:bg-sky-600 transition-colors font-medium text-sm shadow-sm"
 	>
-		<FlaskInBox class="h-4 w-4" />
+		<SquarePlus class="h-4 w-4" />
 		Box-Flasks
 	</button>
 </div>
