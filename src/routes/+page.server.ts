@@ -35,6 +35,18 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			LIMIT 1
 		)`;
 
+		// Correlated subquery: shipment status for the same box row
+		// 'New' = box assigned but not yet returned, 'Returned' = returned
+		const shipmentStatusSubquery = sql<string | null>`(
+			SELECT CASE WHEN bch.returned_at IS NULL THEN 'New' ELSE 'Returned' END
+			FROM box_content_lines bcl
+			JOIN box_content_headers bch ON bcl.box_content_header_id = bch.id
+			JOIN boxes bx ON bch.box_id = bx.id
+			WHERE bcl.flask_id = flasks.id
+			ORDER BY (bch.returned_at IS NOT NULL), bch.returned_at DESC NULLS LAST
+			LIMIT 1
+		)`;
+
 		// Build the query — no JOINs needed, subquery handles box name
 		let query = db
 			.select({
@@ -42,7 +54,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 				name: flasks.name,
 				remarks: flasks.remarks,
 				brokenAt: flasks.brokenAt,
-				boxName: boxNameSubquery
+				boxName: boxNameSubquery,
+				shipmentStatus: shipmentStatusSubquery
 			})
 			.from(flasks)
 			.$dynamic();
@@ -62,7 +75,9 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		}
 
 		// Apply sorting
-		if (sortBy === 'flask') {
+		if (sortBy === 'id') {
+			query = sortOrder === 'asc' ? query.orderBy(asc(flasks.id)) : query.orderBy(desc(flasks.id));
+		} else if (sortBy === 'flask') {
 			query = sortOrder === 'asc' ? query.orderBy(asc(flasks.name)) : query.orderBy(desc(flasks.name));
 		} else if (sortBy === 'box') {
 			query = sortOrder === 'asc'

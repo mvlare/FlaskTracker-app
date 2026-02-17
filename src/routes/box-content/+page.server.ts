@@ -225,6 +225,20 @@ export const actions: Actions = {
 				return fail(400, { error: 'Maximum 15 flasks per shipment' });
 			}
 
+			// Reject flasks already in an active (non-returned) shipment
+			const activeShipment = await db.query.boxContentLines.findFirst({
+				where: eq(boxContentLines.flaskId, parseInt(flaskId)),
+				with: {
+					header: {
+						columns: { returnedAt: true }
+					}
+				}
+			});
+
+			if (activeShipment?.header?.returnedAt === null) {
+				return fail(400, { error: 'This flask is already part of an active shipment' });
+			}
+
 			const insertData = {
 				boxContentHeaderId: parseInt(headerId),
 				flaskId: parseInt(flaskId),

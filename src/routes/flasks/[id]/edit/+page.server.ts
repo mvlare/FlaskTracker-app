@@ -1,5 +1,5 @@
 import { db } from '$lib/server/db';
-import { flasks, flaskLowPressureEvents, flasksRef, flaskRefType } from '$lib/server/db/schema';
+import { flasks, flaskLowPressureEvents, flasksRef, flaskRefType, boxContentLines } from '$lib/server/db/schema';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect, error } from '@sveltejs/kit';
 import { eq, desc, and } from 'drizzle-orm';
@@ -41,12 +41,19 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		orderBy: [desc(flaskLowPressureEvents.lowPressureAt)]
 	});
 
+	// Check if this flask is referenced in any shipment — if so, name cannot be changed
+	const inShipment = await db.query.boxContentLines.findFirst({
+		where: eq(boxContentLines.flaskId, flaskId),
+		columns: { id: true }
+	});
+
 	return {
 		flask,
 		lowPressureEvents: lowPressureEventsData.map((e) => ({
 			id: e.id,
 			lowPressureAt: e.lowPressureAt.toISOString().split('T')[0] // Date only
-		}))
+		})),
+		nameReadOnly: !!inShipment
 	};
 };
 
@@ -71,6 +78,22 @@ export const actions: Actions = {
 		const nameError = validateRequired(name, 'Flask name');
 		if (nameError) {
 			return fail(400, { error: nameError });
+		}
+
+		// Block name change if the flask is used in any shipment
+		const currentFlask = await db.query.flasks.findFirst({
+			where: eq(flasks.id, flaskId),
+			columns: { name: true }
+		});
+
+		if (currentFlask && name.trim() !== currentFlask.name) {
+			const inShipment = await db.query.boxContentLines.findFirst({
+				where: eq(boxContentLines.flaskId, flaskId),
+				columns: { id: true }
+			});
+			if (inShipment) {
+				return fail(400, { error: 'Flask name cannot be changed because it is used in a shipment.' });
+			}
 		}
 
 		try {

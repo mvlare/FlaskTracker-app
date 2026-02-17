@@ -11,6 +11,7 @@
 		remarks: string | null;
 		brokenAt: Date | string | null;
 		boxName: string | null;
+		shipmentStatus: string | null;
 	}
 
 	let {
@@ -43,10 +44,9 @@
 		goto(url.toString(), { replaceState: true, keepFocus: true });
 	}
 
-	function isSortedBy(column: string, order: 'asc' | 'desc' | null = null) {
-		if (sortBy !== column) return order === null;
-		if (order === null) return true;
-		return sortOrder === order;
+	function getSortIcon(column: string): 'none' | 'asc' | 'desc' {
+		if (sortBy !== column) return 'none';
+		return sortOrder === 'asc' ? 'asc' : 'desc';
 	}
 
 	function handleRowClick(index: number) {
@@ -105,37 +105,52 @@
 		<thead class="bg-gray-100 sticky top-0">
 			<tr>
 				<th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 tracking-wider w-20">
-					Id
+					<button
+						onclick={() => handleSort('id')}
+						class="flex items-center gap-1 transition-colors {sortBy === 'id' ? 'text-blue-600' : 'hover:text-gray-900'}"
+					>
+						Id
+						{#if getSortIcon('id') === 'none'}
+							<ArrowUpDown class="h-4 w-4 text-gray-400" />
+						{:else if getSortIcon('id') === 'asc'}
+							<ArrowUp class="h-4 w-4 text-blue-600" />
+						{:else}
+							<ArrowDown class="h-4 w-4 text-blue-600" />
+						{/if}
+					</button>
 				</th>
 				<th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
 					<button
 						onclick={() => handleSort('flask')}
-						class="flex items-center gap-1 hover:text-gray-900 transition-colors"
+						class="flex items-center gap-1 transition-colors {sortBy === 'flask' ? 'text-blue-600' : 'hover:text-gray-900'}"
 					>
 						Flask
-						{#if isSortedBy('flask', null)}
-							<ArrowUpDown class="h-4 w-4" />
-						{:else if isSortedBy('flask', 'asc')}
-							<ArrowUp class="h-4 w-4" />
+						{#if getSortIcon('flask') === 'none'}
+							<ArrowUpDown class="h-4 w-4 text-gray-400" />
+						{:else if getSortIcon('flask') === 'asc'}
+							<ArrowUp class="h-4 w-4 text-blue-600" />
 						{:else}
-							<ArrowDown class="h-4 w-4" />
+							<ArrowDown class="h-4 w-4 text-blue-600" />
 						{/if}
 					</button>
 				</th>
 				<th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
 					<button
 						onclick={() => handleSort('box')}
-						class="flex items-center gap-1 hover:text-gray-900 transition-colors"
+						class="flex items-center gap-1 transition-colors {sortBy === 'box' ? 'text-blue-600' : 'hover:text-gray-900'}"
 					>
 						Box
-						{#if isSortedBy('box', null)}
-							<ArrowUpDown class="h-4 w-4" />
-						{:else if isSortedBy('box', 'asc')}
-							<ArrowUp class="h-4 w-4" />
+						{#if getSortIcon('box') === 'none'}
+							<ArrowUpDown class="h-4 w-4 text-gray-400" />
+						{:else if getSortIcon('box') === 'asc'}
+							<ArrowUp class="h-4 w-4 text-blue-600" />
 						{:else}
-							<ArrowDown class="h-4 w-4" />
+							<ArrowDown class="h-4 w-4 text-blue-600" />
 						{/if}
 					</button>
+				</th>
+				<th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 tracking-wider w-24">
+					Shipment
 				</th>
 				<th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 tracking-wider w-32">
 					Broken Date
@@ -145,7 +160,7 @@
 		<tbody class="bg-white divide-y divide-gray-200">
 			{#if flasks.length === 0}
 				<tr>
-					<td colspan="4" class="px-4 py-8 text-center text-gray-500">
+					<td colspan="5" class="px-4 py-8 text-center text-gray-500">
 						No flasks found. Try adjusting your search filters.
 					</td>
 				</tr>
@@ -166,6 +181,17 @@
 						</td>
 						<td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
 							{flask.boxName || '-'}
+						</td>
+						<td class="px-4 py-2 whitespace-nowrap text-sm">
+							{#if flask.shipmentStatus === 'New'}
+								<span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+									New
+								</span>
+							{:else if flask.shipmentStatus === 'Returned'}
+								<span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+									Returned
+								</span>
+							{/if}
 						</td>
 						<td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700 w-32">
 							{formatDateDisplay(flask.brokenAt) || '-'}

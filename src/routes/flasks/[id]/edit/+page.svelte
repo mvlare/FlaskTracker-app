@@ -93,12 +93,16 @@
 				label="Flask Name"
 				bind:value={name}
 				required={true}
-				disabled={isSubmitting}
+				disabled={isSubmitting || data.nameReadOnly}
 				placeholder="UU-1-001"
 			/>
 			<div class="flex items-center gap-1 mt-1">
 				<Info class="h-3 w-3 text-gray-400" />
-				<p class="text-xs text-gray-500">Required. This name must be unique.</p>
+				{#if data.nameReadOnly}
+					<p class="text-xs text-amber-600">Name cannot be changed — this flask is used in a shipment.</p>
+				{:else}
+					<p class="text-xs text-gray-500">Required. This name must be unique.</p>
+				{/if}
 			</div>
 		</div>
 

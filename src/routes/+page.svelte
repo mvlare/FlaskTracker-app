@@ -14,6 +14,7 @@
 		remarks: string | null;
 		brokenAt: Date | string | null;
 		boxName: string | null;
+		shipmentStatus: string | null;
 	} | null>(null);
 
 	function handleSelectFlask(flask: typeof selectedFlask) {

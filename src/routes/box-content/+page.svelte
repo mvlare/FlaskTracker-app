@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
-	import { ArrowLeft, Plus, Save, Edit, Trash2, X, List, Search, Copy, Clipboard } from 'lucide-svelte';
+	import { ArrowLeft, Plus, Save, Edit, Trash2, X, List, Search, Copy, Clipboard, Pencil } from 'lucide-svelte';
 	import FloatingLabelInput from '$lib/components/form/FloatingLabelInput.svelte';
 	import FloatingLabelDatePicker from '$lib/components/form/FloatingLabelDatePicker.svelte';
 	import { formatDateDisplay } from '$lib/utils/dates';
@@ -199,6 +199,17 @@
 									Search Box name
 								</label>
 								<div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+									{#if data.box}
+										<button
+											type="button"
+											onclick={() => goto(`/boxes/${data.box.id}/edit`)}
+											tabindex="-1"
+											title="Edit box"
+											class="text-sky-500 hover:text-sky-700 transition-colors"
+										>
+											<Pencil class="h-4 w-4" />
+										</button>
+									{/if}
 									{#if boxSearchQuery.length > 0}
 										<button
 											type="button"
@@ -242,6 +253,7 @@
 					</div>
 				</div>
 			</div>
+
 		</div>
 
 		<!-- Error message -->
@@ -622,7 +634,7 @@
 										class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-gray-100"
 									>
 										<option value="">Select...</option>
-										{#await fetch('/api/flasks').then((r) => r.json())}
+										{#await fetch('/api/flasks?availableOnly=true').then((r) => r.json())}
 											<option>Loading...</option>
 										{:then flasks}
 											{#each flasks as flask}
