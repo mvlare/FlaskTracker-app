@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
-	import { ArrowLeft, Plus, Save, Edit, Trash2, X } from 'lucide-svelte';
+	import { ArrowLeft, Plus, Save, Edit, Trash2, X, List, Search, Copy } from 'lucide-svelte';
 	import FloatingLabelInput from '$lib/components/form/FloatingLabelInput.svelte';
 	import FloatingLabelDatePicker from '$lib/components/form/FloatingLabelDatePicker.svelte';
 	import { formatDateDisplay } from '$lib/utils/dates';
@@ -13,15 +13,17 @@
 	let boxSearchQuery = $state('');
 	let allBoxes = $state<Array<{ id: number; name: string }>>([]);
 	let isLoadingBoxes = $state(true);
+	let isPickerOpen = $state(false);
+	let pickerContainerRef: HTMLDivElement | undefined = $state();
 
 	// Filtered boxes based on search query
 	let filteredBoxes = $derived(
 		allBoxes.filter((box) => box.name.toLowerCase().includes(boxSearchQuery.toLowerCase()))
 	);
 
-	// Check if current search matches the selected box (to hide list when box is selected)
+	// Bold field when the typed text matches the currently selected box
 	let isBoxSelected = $derived(
-		data.box && boxSearchQuery.trim().toLowerCase() === data.box.name.toLowerCase()
+		!!data.box && boxSearchQuery.trim().toLowerCase() === data.box.name.toLowerCase()
 	);
 
 	// Tab state: 'new' or 'returned'
@@ -38,9 +40,24 @@
 	// Derived: Is flasks table editable? (only if "New" tab is active)
 	let isBlock3Editable = $derived(activeTab === 'new');
 
+	// Derived: focused shipment object for date display
+	let focusedShipment = $derived(
+		activeTab === 'new'
+			? (data.openShipment ?? null)
+			: (data.closedShipments.find((s) => s.id === selectedClosedShipmentId) ?? null)
+	);
+
 	// Form states
 	let isSubmitting = $state(false);
 	let editingLineId = $state<number | null>(null);
+	let showCopyConfirm = $state(false);
+	let copyFormEl = $state<HTMLFormElement | null>(null);
+	let showDeleteConfirm = $state(false);
+	let deleteFlaskName = $state('');
+	let deleteLineId = $state<number | null>(null);
+
+	// Open shipment form error
+	let headerError = $state('');
 
 	// Add flask form state
 	let showAddFlask = $state(false);
@@ -61,23 +78,57 @@
 			});
 	});
 
-	// Pre-fill search field when a box is selected
+	// Pre-fill search field with selected box name whenever the box changes
 	$effect(() => {
-		if (data.box && boxSearchQuery === '') {
-			boxSearchQuery = data.box.name;
+		const _boxId = data.box?.id; // track this dependency
+		boxSearchQuery = data.box ? data.box.name : '';
+	});
+
+	// Reset panel state whenever the selected box or focused shipment changes
+	$effect(() => {
+		const _boxId = data.box?.id; // track box changes
+		const fId = data.focusedShipmentId; // track focused shipment changes
+
+		if (fId && fId !== data.openShipment?.id) {
+			activeTab = 'returned';
+			selectedClosedShipmentId = fId;
+		} else {
+			activeTab = 'new';
+			selectedClosedShipmentId = null;
 		}
+
+		showAddFlask = false;
+		editingLineId = null;
+		newLineFlaskId = '';
+		newLineRemarks = '';
 	});
 
 	function handleBoxSelect(boxId: number, boxName: string) {
 		boxSearchQuery = boxName;
+		isPickerOpen = false;
 		goto(`/box-content?boxId=${boxId}`);
 	}
+
+	function handlePickerClickOutside(event: MouseEvent) {
+		if (isPickerOpen && pickerContainerRef && !pickerContainerRef.contains(event.target as Node)) {
+			isPickerOpen = false;
+		}
+	}
+
+	$effect(() => {
+		if (isPickerOpen) {
+			document.addEventListener('click', handlePickerClickOutside);
+			return () => document.removeEventListener('click', handlePickerClickOutside);
+		}
+	});
 
 	function handleBoxSearchKeydown(event: KeyboardEvent) {
 		if (event.key === 'Enter' && filteredBoxes.length > 0) {
 			event.preventDefault();
-			const firstMatch = filteredBoxes[0];
-			handleBoxSelect(firstMatch.id, firstMatch.name);
+			handleBoxSelect(filteredBoxes[0].id, filteredBoxes[0].name);
+		}
+		if (event.key === 'Escape') {
+			isPickerOpen = false;
 		}
 	}
 
@@ -86,7 +137,7 @@
 	}
 
 	function handleClosedShipmentClick(shipmentId: number) {
-		selectedClosedShipmentId = shipmentId;
+		goto(`/box-content?boxId=${data.box!.id}&focusedShipmentId=${shipmentId}`);
 	}
 
 	function resetAddFlaskForm() {
@@ -95,9 +146,6 @@
 		newLineRemarks = '';
 	}
 
-	function confirmDelete(name: string): boolean {
-		return confirm(`Are you sure you want to delete flask ${name}?`);
-	}
 </script>
 
 <div class="min-h-screen bg-gray-50 p-6">
@@ -117,10 +165,9 @@
 			<div class="w-full lg:w-2/5">
 				<div class="flex gap-2 items-start">
 					<div class="flex-1 bg-white rounded-lg shadow border border-gray-200">
-						<div
-							class="p-3 {!isBoxSelected && boxSearchQuery.length > 0 ? 'border-b border-gray-200' : ''}"
-						>
-							<div class="relative">
+						<div class="p-3 {isPickerOpen ? 'border-b border-gray-200' : ''}">
+							<div class="relative" bind:this={pickerContainerRef}>
+								<Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
 								<input
 									id="boxSearch"
 									name="boxSearch"
@@ -129,20 +176,41 @@
 									onkeydown={handleBoxSearchKeydown}
 									placeholder=" "
 									disabled={isLoadingBoxes}
-									class="block w-full px-3 pt-6 pb-2 text-gray-900 bg-white border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent peer disabled:bg-gray-100 {isBoxSelected
+									class="block w-full pl-10 pt-6 pb-2 pr-14 text-gray-900 bg-white border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent peer disabled:bg-gray-100 {isBoxSelected
 										? 'font-bold'
 										: ''}"
 								/>
 								<label
 									for="boxSearch"
-									class="absolute text-gray-500 duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] start-3 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-disabled:text-gray-400"
+									class="absolute text-gray-500 duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-left start-10 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-disabled:text-gray-400"
 								>
-									Box name
+									Search Box name
 								</label>
+								<div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+									{#if boxSearchQuery.length > 0}
+										<button
+											type="button"
+											onclick={() => (boxSearchQuery = '')}
+											tabindex="-1"
+											class="text-gray-400 hover:text-gray-600 transition-colors"
+										>
+											<X class="h-4 w-4" />
+										</button>
+									{/if}
+									<button
+										type="button"
+										onclick={() => (isPickerOpen = !isPickerOpen)}
+										disabled={isLoadingBoxes}
+										tabindex="-1"
+										class="text-gray-400 hover:text-gray-600 transition-colors"
+									>
+										<List class="h-4 w-4" />
+									</button>
+								</div>
 							</div>
 						</div>
 
-						{#if !isBoxSelected && boxSearchQuery.length > 0}
+						{#if isPickerOpen}
 							<div class="max-h-48 overflow-y-auto">
 								{#if filteredBoxes.length > 0}
 									{#each filteredBoxes as box}
@@ -188,7 +256,10 @@
 					<div class="flex border-b border-gray-200 mb-4">
 						<button
 							type="button"
-							onclick={() => (activeTab = 'new')}
+							onclick={() => {
+								activeTab = 'new';
+								goto(`/box-content?boxId=${data.box!.id}`);
+							}}
 							class="px-4 py-2 border-b-2 transition-all {activeTab === 'new'
 								? 'border-sky-500 text-sky-600 font-semibold'
 								: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
@@ -197,7 +268,12 @@
 						</button>
 						<button
 							type="button"
-							onclick={() => (activeTab = 'returned')}
+							onclick={() => {
+								activeTab = 'returned';
+								if (data.closedShipments.length > 0) {
+									handleClosedShipmentClick(data.closedShipments[0].id);
+								}
+							}}
 							class="px-4 py-2 border-b-2 transition-all {activeTab === 'returned'
 								? 'border-sky-500 text-sky-600 font-semibold'
 								: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
@@ -214,11 +290,19 @@
 							<form
 								method="POST"
 								action="?/updateHeader"
-								use:enhance={() => {
+								use:enhance={({ formData, cancel }) => {
+									const destination = (formData.get('destinationText') as string) ?? '';
+									const returnedAt = (formData.get('returnedAt') as string) ?? '';
+									if (returnedAt && !destination.trim()) {
+										headerError = 'Destination is required when a return date is set.';
+										cancel();
+										return;
+									}
+									headerError = '';
 									isSubmitting = true;
 									return async ({ update }) => {
 										isSubmitting = false;
-										await update();
+										await update({ reset: false });
 									};
 								}}
 							>
@@ -269,11 +353,15 @@
 										></textarea>
 										<label
 											for="remarks"
-											class="absolute text-gray-500 duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] start-3 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-disabled:text-gray-400"
+											class="absolute text-gray-500 duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-left start-3 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-disabled:text-gray-400"
 										>
 											Remarks
 										</label>
 									</div>
+
+									{#if headerError}
+										<p class="text-sm text-red-600">{headerError}</p>
+									{/if}
 
 									<div class="flex gap-2">
 										<button
@@ -321,17 +409,18 @@
 							</div>
 						{/if}
 					{:else}
-						<!-- RETURNED TAB: List of closed shipments -->
+						<!-- RETURNED TAB: List of closed shipments + readonly detail fields -->
 						{#if data.closedShipments.length === 0}
 							<p class="text-gray-500 text-center py-8">No closed shipments yet.</p>
 						{:else}
-							<div class="space-y-2 max-h-[600px] overflow-y-auto">
+							<!-- Compact selector list -->
+							<div class="space-y-1.5 max-h-36 overflow-y-auto mb-4">
 								{#each data.closedShipments as closedShipment}
 									<div
-										class="cursor-pointer border rounded-lg p-3 transition-all {selectedClosedShipmentId ===
+										class="cursor-pointer border rounded-lg px-3 py-2 transition-all {selectedClosedShipmentId ===
 										closedShipment.id
 											? 'border-sky-500 bg-sky-50'
-											: 'border-gray-200 bg-white hover:border-gray-300'}"
+											: 'border-gray-200 bg-gray-50 opacity-50 hover:opacity-100 hover:border-gray-300'}"
 										onclick={() => handleClosedShipmentClick(closedShipment.id)}
 										role="button"
 										tabindex="0"
@@ -341,27 +430,95 @@
 											}
 										}}
 									>
-										<p class="text-sm text-gray-600">
-											<span class="font-medium"
-												>Dest: {closedShipment.destinationText || 'N/A'}</span
-											>
+										<p class="text-sm font-medium text-gray-800 truncate">
+											{closedShipment.destinationText || 'N/A'}
 										</p>
-										<p class="text-sm text-gray-600">
-											Ready: {closedShipment.readyAt
+										<p class="text-xs text-gray-500">
+											{closedShipment.readyAt
 												? formatDateDisplay(closedShipment.readyAt)
-												: 'N/A'}
-										</p>
-										<p class="text-sm text-gray-600">
-											Returned: {closedShipment.returnedAt
+												: 'N/A'} → {closedShipment.returnedAt
 												? formatDateDisplay(closedShipment.returnedAt)
 												: 'N/A'}
 										</p>
-										{#if closedShipment.remarks}
-											<p class="text-sm text-gray-500 italic">{closedShipment.remarks}</p>
-										{/if}
 									</div>
 								{/each}
 							</div>
+
+							<!-- Readonly detail fields for selected shipment -->
+							{#if selectedClosedShipmentId}
+								<hr class="border-t border-gray-300 my-2" />
+								{@const selected = data.closedShipments.find(
+									(s) => s.id === selectedClosedShipmentId
+								)}
+								{#if selected}
+									<div class="space-y-4">
+										<div class="relative">
+											<input
+												id="selectedDestination"
+												type="text"
+												readonly
+												value={selected.destinationText || ''}
+												class="w-full px-4 py-2 pt-6 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all"
+											/>
+											<label
+												for="selectedDestination"
+												class="absolute left-3 top-2 text-xs text-gray-600 bg-white px-1 pointer-events-none select-none"
+											>
+												Destination
+											</label>
+										</div>
+
+										<div class="relative">
+											<input
+												id="selectedReadyAt"
+												type="text"
+												readonly
+												value={selected.readyAt ? formatDateDisplay(selected.readyAt) : ''}
+												class="w-full px-4 py-2 pt-6 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all"
+											/>
+											<label
+												for="selectedReadyAt"
+												class="absolute left-3 top-2 text-xs text-gray-600 bg-white px-1 pointer-events-none select-none"
+											>
+												Ready
+											</label>
+										</div>
+
+										<div class="relative">
+											<input
+												id="selectedReturnedAt"
+												type="text"
+												readonly
+												value={selected.returnedAt
+													? formatDateDisplay(selected.returnedAt)
+													: ''}
+												class="w-full px-4 py-2 pt-6 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all"
+											/>
+											<label
+												for="selectedReturnedAt"
+												class="absolute left-3 top-2 text-xs text-gray-600 bg-white px-1 pointer-events-none select-none"
+											>
+												Returned
+											</label>
+										</div>
+
+										<div class="relative">
+											<textarea
+												id="selectedRemarks"
+												readonly
+												rows="3"
+												class="w-full px-4 py-2 pt-6 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all resize-none"
+											>{selected.remarks || ''}</textarea>
+											<label
+												for="selectedRemarks"
+												class="absolute left-3 top-2 text-xs text-gray-600 bg-white px-1 pointer-events-none select-none"
+											>
+												Remarks
+											</label>
+										</div>
+									</div>
+								{/if}
+							{/if}
 						{/if}
 					{/if}
 				</div>
@@ -369,17 +526,54 @@
 				<!-- RIGHT: Flasks Table (3/5 width on large screens, full width on small) -->
 				<div class="col-span-1 lg:col-span-3 bg-white rounded-lg shadow p-6">
 					<div class="flex justify-between items-center mb-3">
-						<h2 class="text-lg font-semibold text-gray-900">Flasks of shipment</h2>
+						<div>
+							<h2 class="text-lg font-semibold text-gray-900">Flasks of shipment</h2>
+							{#if focusedShipment && (focusedShipment.readyAt || focusedShipment.returnedAt)}
+								<p class="text-xs text-gray-500 mt-0.5">
+									{focusedShipment.readyAt ? formatDateDisplay(focusedShipment.readyAt) : '?'}
+									→
+									{focusedShipment.returnedAt ? formatDateDisplay(focusedShipment.returnedAt) : '?'}
+								</p>
+							{/if}
+						</div>
 						{#if isBlock3Editable && focusedShipmentId}
-							<button
-								type="button"
-								onclick={() => (showAddFlask = !showAddFlask)}
-								disabled={data.focusedShipmentLines.length >= 15}
-								class="flex items-center gap-2 px-3 py-1.5 text-sm bg-sky-500 text-gray-800 rounded-md hover:bg-sky-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors font-medium shadow-sm"
-							>
-								<Plus class="h-4 w-4" />
-								Add Flask {data.focusedShipmentLines.length >= 15 ? '(Max 15)' : ''}
-							</button>
+							<div class="flex gap-2">
+								{#if data.closedShipments.length > 0}
+									<form
+										method="POST"
+										action="?/copyLastReturn"
+										bind:this={copyFormEl}
+										use:enhance={() => {
+											isSubmitting = true;
+											return async ({ update }) => {
+												isSubmitting = false;
+												await update();
+											};
+										}}
+									>
+										<input type="hidden" name="headerId" value={focusedShipmentId} />
+										<input type="hidden" name="boxId" value={data.box!.id} />
+										<button
+											type="button"
+											disabled={isSubmitting}
+											onclick={() => (showCopyConfirm = true)}
+											class="flex items-center gap-2 px-3 py-1.5 text-sm bg-sky-500 text-gray-800 rounded-md hover:bg-sky-600 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors font-medium shadow-sm"
+										>
+											<Copy class="h-4 w-4" />
+											Copy last return
+										</button>
+									</form>
+								{/if}
+								<button
+									type="button"
+									onclick={() => (showAddFlask = !showAddFlask)}
+									disabled={data.focusedShipmentLines.length >= 15}
+									class="flex items-center gap-2 px-3 py-1.5 text-sm bg-sky-500 text-gray-800 rounded-md hover:bg-sky-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors font-medium shadow-sm"
+								>
+									<Plus class="h-4 w-4" />
+									Add Flask {data.focusedShipmentLines.length >= 15 ? '(Max 15)' : ''}
+								</button>
+							</div>
 						{/if}
 					</div>
 
@@ -557,31 +751,15 @@
 															>
 																<Edit class="h-4 w-4" />
 															</button>
-															<form
-																method="POST"
-																action="?/deleteLine"
-																use:enhance={() => {
-																	if (!confirmDelete(line.flask.name)) {
-																		return () => {};
-																	}
-																	isSubmitting = true;
-																	return async ({ update }) => {
-																		isSubmitting = false;
-																		await update();
-																	};
-																}}
-																class="inline"
+															<button
+																type="button"
+																disabled={isSubmitting}
+																onclick={() => { deleteLineId = line.id; deleteFlaskName = line.flask.name; showDeleteConfirm = true; }}
+																class="text-red-600 hover:text-red-900 disabled:text-gray-400"
+																title="Delete"
 															>
-																<input type="hidden" name="lineId" value={line.id} />
-																<button
-																	type="submit"
-																	disabled={isSubmitting}
-																	class="text-red-600 hover:text-red-900 disabled:text-gray-400"
-																	title="Delete"
-																>
-																	<Trash2 class="h-4 w-4" />
-																</button>
-															</form>
+																<Trash2 class="h-4 w-4" />
+															</button>
 														</div>
 													{/if}
 												</td>
@@ -594,7 +772,7 @@
 					{/if}
 				</div>
 			</div>
-		{:else if $page.url.searchParams.get('boxId')}
+		{:else if !data.box && $page.url.searchParams.get('boxId')}
 			<div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
 				<p class="text-sm text-amber-800">
 					{data.error || 'Box not found. Please select a different box from the list above.'}
@@ -602,4 +780,71 @@
 			</div>
 		{/if}
 	</div>
+
+{#if showCopyConfirm}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+		<div class="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
+			<h3 class="mb-2 text-lg font-semibold text-gray-900">Copy last return</h3>
+			<p class="mb-6 text-sm text-gray-600">
+				Copy all flasks from the last returned shipment to this shipment?
+			</p>
+			<div class="flex justify-end gap-3">
+				<button
+					type="button"
+					onclick={() => (showCopyConfirm = false)}
+					class="rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
+				>
+					Cancel
+				</button>
+				<button
+					type="button"
+					onclick={() => { showCopyConfirm = false; copyFormEl?.requestSubmit(); }}
+					class="rounded-md bg-sky-500 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-sky-600 transition-colors"
+				>
+					Copy
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if showDeleteConfirm}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+		<div class="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
+			<h3 class="mb-2 text-lg font-semibold text-gray-900">Delete flask</h3>
+			<p class="mb-6 text-sm text-gray-600">
+				Are you sure you want to delete flask <strong>{deleteFlaskName}</strong>?
+			</p>
+			<div class="flex justify-end gap-3">
+				<button
+					type="button"
+					onclick={() => (showDeleteConfirm = false)}
+					class="rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
+				>
+					Cancel
+				</button>
+				<form
+					method="POST"
+					action="?/deleteLine"
+					use:enhance={() => {
+						isSubmitting = true;
+						showDeleteConfirm = false;
+						return async ({ update }) => {
+							isSubmitting = false;
+							await update();
+						};
+					}}
+				>
+					<input type="hidden" name="lineId" value={deleteLineId} />
+					<button
+						type="submit"
+						class="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors"
+					>
+						Delete
+					</button>
+				</form>
+			</div>
+		</div>
+	</div>
+{/if}
 </div>

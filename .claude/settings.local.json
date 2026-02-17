@@ -4,7 +4,8 @@
       "Bash(npm run check:*)",
       "WebFetch(domain:www.better-auth.com)",
       "WebSearch",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(node:*)"
     ]
   }
 }

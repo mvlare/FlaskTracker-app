@@ -4,6 +4,7 @@ import { db } from '$lib/server/db';
 import { boxes, boxContentHeaders, boxContentLines, flasks } from '$lib/server/db/schema';
 import { eq, desc, isNull, isNotNull, and, asc } from 'drizzle-orm';
 import { validateRequired, processRemarks, parseDateToUTC } from '$lib/server/utils/validation';
+import { formatDateDisplay } from '$lib/utils/dates';
 import { handleDatabaseError } from '$lib/server/utils/error-handling';
 import { createAuditFields, updateAuditFields } from '$lib/server/utils/audit';
 
@@ -146,13 +147,41 @@ export const actions: Actions = {
 			return fail(400, { error: headerIdError });
 		}
 
+		const readyAt = parseDateToUTC(readyAtRaw ? String(readyAtRaw) : null);
+		const returnedAt = parseDateToUTC(returnedAtRaw ? String(returnedAtRaw) : null);
+
+		// Validate: readyAt cannot be before the most recent returnedAt of a closed shipment
+		if (readyAt) {
+			const header = await db.query.boxContentHeaders.findFirst({
+				where: eq(boxContentHeaders.id, parseInt(headerId)),
+				columns: { boxId: true }
+			});
+
+			if (header) {
+				const latestClosed = await db.query.boxContentHeaders.findFirst({
+					where: and(
+						eq(boxContentHeaders.boxId, header.boxId),
+						isNotNull(boxContentHeaders.returnedAt)
+					),
+					orderBy: [desc(boxContentHeaders.returnedAt)],
+					columns: { returnedAt: true }
+				});
+
+				if (latestClosed?.returnedAt && readyAt < latestClosed.returnedAt) {
+					return fail(400, {
+						error: `Ready date cannot be before the last returned date (${formatDateDisplay(latestClosed.returnedAt)}).`
+					});
+				}
+			}
+		}
+
 		try {
 			await db
 				.update(boxContentHeaders)
 				.set({
 					destinationText: destinationText?.trim() || null,
-					readyAt: parseDateToUTC(readyAtRaw ? String(readyAtRaw) : null),
-					returnedAt: parseDateToUTC(returnedAtRaw ? String(returnedAtRaw) : null),
+					readyAt,
+					returnedAt,
 					remarks: processRemarks(remarksRaw),
 					...updateAuditFields(locals.user.id)
 				})
@@ -259,6 +288,76 @@ export const actions: Actions = {
 
 		try {
 			await db.delete(boxContentLines).where(eq(boxContentLines.id, parseInt(lineId)));
+
+			return { success: true };
+		} catch (error) {
+			const { status, message } = handleDatabaseError(error, 'flask line');
+			return fail(status, { error: message });
+		}
+	},
+
+	copyLastReturn: async ({ request, locals }) => {
+		if (!locals.session || !locals.user) {
+			return fail(401, { error: 'Unauthorized' });
+		}
+
+		const formData = await request.formData();
+		const headerId = formData.get('headerId') as string;
+		const boxId = formData.get('boxId') as string;
+
+		const headerIdError = validateRequired(headerId, 'Shipment');
+		if (headerIdError) return fail(400, { error: headerIdError });
+
+		const boxIdError = validateRequired(boxId, 'Box');
+		if (boxIdError) return fail(400, { error: boxIdError });
+
+		try {
+			// Find the most recent closed shipment for this box
+			const latestClosed = await db.query.boxContentHeaders.findFirst({
+				where: and(
+					eq(boxContentHeaders.boxId, parseInt(boxId)),
+					isNotNull(boxContentHeaders.returnedAt)
+				),
+				orderBy: [desc(boxContentHeaders.returnedAt)]
+			});
+
+			if (!latestClosed) {
+				return fail(400, { error: 'No returned shipment found to copy from.' });
+			}
+
+			// Get source flask lines
+			const sourceLines = await db.query.boxContentLines.findMany({
+				where: eq(boxContentLines.boxContentHeaderId, latestClosed.id)
+			});
+
+			if (sourceLines.length === 0) {
+				return fail(400, { error: 'The last returned shipment has no flasks.' });
+			}
+
+			// Get existing lines to check limit and avoid duplicates
+			const existingLines = await db.query.boxContentLines.findMany({
+				where: eq(boxContentLines.boxContentHeaderId, parseInt(headerId))
+			});
+
+			const existingFlaskIds = new Set(existingLines.map((l) => l.flaskId));
+			const linesToInsert = sourceLines
+				.filter((l) => !existingFlaskIds.has(l.flaskId))
+				.map((l) => ({
+					boxContentHeaderId: parseInt(headerId),
+					flaskId: l.flaskId,
+					remarks: l.remarks,
+					...createAuditFields(locals.user.id)
+				}));
+
+			if (existingLines.length + linesToInsert.length > 15) {
+				return fail(400, {
+					error: `Cannot copy: would exceed the maximum of 15 flasks (current: ${existingLines.length}, to copy: ${linesToInsert.length}).`
+				});
+			}
+
+			if (linesToInsert.length > 0) {
+				await db.insert(boxContentLines).values(linesToInsert);
+			}
 
 			return { success: true };
 		} catch (error) {
