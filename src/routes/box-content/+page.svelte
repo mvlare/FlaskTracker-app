@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
-	import { ArrowLeft, Plus, Save, Edit, Trash2, X, List, Search, Copy } from 'lucide-svelte';
+	import { ArrowLeft, Plus, Save, Edit, Trash2, X, List, Search, Copy, Clipboard } from 'lucide-svelte';
 	import FloatingLabelInput from '$lib/components/form/FloatingLabelInput.svelte';
 	import FloatingLabelDatePicker from '$lib/components/form/FloatingLabelDatePicker.svelte';
 	import { formatDateDisplay } from '$lib/utils/dates';
@@ -51,6 +51,7 @@
 	let isSubmitting = $state(false);
 	let editingLineId = $state<number | null>(null);
 	let showCopyConfirm = $state(false);
+	let clipboardCopied = $state(false);
 	let copyFormEl = $state<HTMLFormElement | null>(null);
 	let showDeleteConfirm = $state(false);
 	let deleteFlaskName = $state('');
@@ -138,6 +139,17 @@
 
 	function handleClosedShipmentClick(shipmentId: number) {
 		goto(`/box-content?boxId=${data.box!.id}&focusedShipmentId=${shipmentId}`);
+	}
+
+	async function copyTableToClipboard() {
+		const header = 'ID\tName\tRemarks';
+		const rows = data.focusedShipmentLines.map(
+			(line) => `${line.flask.id}\t${line.flask.name}\t${line.remarks ?? ''}`
+		);
+		const tsv = [header, ...rows].join('\n');
+		await navigator.clipboard.writeText(tsv);
+		clipboardCopied = true;
+		setTimeout(() => (clipboardCopied = false), 2000);
 	}
 
 	function resetAddFlaskForm() {
@@ -527,7 +539,7 @@
 				<div class="col-span-1 lg:col-span-3 bg-white rounded-lg shadow p-6">
 					<div class="flex justify-between items-center mb-3">
 						<div>
-							<h2 class="text-lg font-semibold text-gray-900">Flasks of shipment</h2>
+							<h2 class="text-lg font-semibold text-gray-900">Flasks of shipment{data.box ? ` — ${data.box.name}` : ''}</h2>
 							{#if focusedShipment && (focusedShipment.readyAt || focusedShipment.returnedAt)}
 								<p class="text-xs text-gray-500 mt-0.5">
 									{focusedShipment.readyAt ? formatDateDisplay(focusedShipment.readyAt) : '?'}
@@ -660,6 +672,16 @@
 					{:else if data.focusedShipmentLines.length === 0}
 						<p class="text-gray-500 text-center py-8 text-sm">No flasks in this shipment yet.</p>
 					{:else}
+						<div class="flex justify-end mb-2">
+							<button
+								type="button"
+								onclick={copyTableToClipboard}
+								class="flex items-center gap-1.5 px-2.5 py-1 text-xs text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+							>
+								<Clipboard class="h-3.5 w-3.5" />
+								{clipboardCopied ? "Copied!" : "Copy table"}
+							</button>
+						</div>
 						<div class="overflow-x-auto">
 							<table class="w-full text-sm">
 								<thead class="bg-gray-50">

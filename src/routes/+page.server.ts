@@ -1,5 +1,5 @@
 import { db } from '$lib/server/db';
-import { flasks, boxes, boxContentLines, boxContentHeaders } from '$lib/server/db/schema';
+import { flasks } from '$lib/server/db/schema';
 import { eq, ilike, or, sql, desc, asc } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
@@ -22,22 +22,29 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const sortOrder = url.searchParams.get('sortOrder') || 'desc';
 
 	try {
-		// Build the query with left joins to get box information
+		// Correlated subquery: pick one box name per flask
+		// Priority: open shipment (returned_at IS NULL) first, then most recently returned
+		// Written as raw SQL with aliases to avoid Drizzle stripping table qualifiers
+		const boxNameSubquery = sql<string | null>`(
+			SELECT bx.name
+			FROM box_content_lines bcl
+			JOIN box_content_headers bch ON bcl.box_content_header_id = bch.id
+			JOIN boxes bx ON bch.box_id = bx.id
+			WHERE bcl.flask_id = flasks.id
+			ORDER BY (bch.returned_at IS NOT NULL), bch.returned_at DESC NULLS LAST
+			LIMIT 1
+		)`;
+
+		// Build the query — no JOINs needed, subquery handles box name
 		let query = db
 			.select({
 				id: flasks.id,
 				name: flasks.name,
 				remarks: flasks.remarks,
 				brokenAt: flasks.brokenAt,
-				boxName: boxes.name
+				boxName: boxNameSubquery
 			})
 			.from(flasks)
-			.leftJoin(boxContentLines, eq(flasks.id, boxContentLines.flaskId))
-			.leftJoin(
-				boxContentHeaders,
-				eq(boxContentLines.boxContentHeaderId, boxContentHeaders.id)
-			)
-			.leftJoin(boxes, eq(boxContentHeaders.boxId, boxes.id))
 			.$dynamic();
 
 		// Apply filters
@@ -47,7 +54,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			conditions.push(ilike(flasks.name, `%${flaskSearch}%`));
 		}
 		if (boxSearch) {
-			conditions.push(ilike(boxes.name, `%${boxSearch}%`));
+			conditions.push(sql`${boxNameSubquery} ILIKE ${`%${boxSearch}%`}`);
 		}
 
 		if (conditions.length > 0) {
@@ -58,7 +65,9 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		if (sortBy === 'flask') {
 			query = sortOrder === 'asc' ? query.orderBy(asc(flasks.name)) : query.orderBy(desc(flasks.name));
 		} else if (sortBy === 'box') {
-			query = sortOrder === 'asc' ? query.orderBy(asc(boxes.name)) : query.orderBy(desc(boxes.name));
+			query = sortOrder === 'asc'
+				? query.orderBy(sql`${boxNameSubquery} ASC NULLS LAST`)
+				: query.orderBy(sql`${boxNameSubquery} DESC NULLS FIRST`);
 		}
 
 		// Apply pagination
@@ -66,16 +75,10 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 
 		const results = await query;
 
-		// Get total count for pagination
+		// Get total count for pagination — no JOINs, each flask is exactly one row
 		let countQuery = db
-			.select({ count: sql<number>`count(DISTINCT ${flasks.id})` })
+			.select({ count: sql<number>`count(*)` })
 			.from(flasks)
-			.leftJoin(boxContentLines, eq(flasks.id, boxContentLines.flaskId))
-			.leftJoin(
-				boxContentHeaders,
-				eq(boxContentLines.boxContentHeaderId, boxContentHeaders.id)
-			)
-			.leftJoin(boxes, eq(boxContentHeaders.boxId, boxes.id))
 			.$dynamic();
 
 		if (conditions.length > 0) {
