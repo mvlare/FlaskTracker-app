@@ -298,3 +298,28 @@ try {
 - `/src/lib/server/utils/validation.ts` - Validation utilities
 - `/src/lib/server/utils/error-handling.ts` - Error handling utilities
 - `/src/lib/server/utils/audit.ts` - Audit trail utilities
+
+## Business Rules Documentation
+
+When asked to generate business rules for a screen, always use the structure below. Read the relevant route files and components fresh each time to ensure accuracy.
+
+### [Screen Name]
+
+**Purpose**
+One or two sentences describing what this screen is for and who uses it.
+
+**Access**
+Which users can reach this screen (authenticated, admin-only, etc.).
+
+**Data Displayed**
+List of data shown on screen, where it comes from (table/query), and any filtering or ordering applied.
+
+**Actions & Rules**
+For each action (button, form submit, etc.):
+- What it does
+- Validations applied (required fields, format, range)
+- Business constraints (max limits, duplicate checks, state requirements)
+- Side effects (records created/updated/deleted, redirects)
+
+**Error Conditions**
+List of error messages the user can see and what triggers each one.

@@ -5,7 +5,8 @@
       "WebFetch(domain:www.better-auth.com)",
       "WebSearch",
       "Bash(grep:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(python3:*)"
     ]
   }
 }

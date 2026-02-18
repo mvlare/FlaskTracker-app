@@ -216,15 +216,6 @@ export const actions: Actions = {
 		}
 
 		try {
-			// Check line count (max 15)
-			const existingLines = await db.query.boxContentLines.findMany({
-				where: eq(boxContentLines.boxContentHeaderId, parseInt(headerId))
-			});
-
-			if (existingLines.length >= 15) {
-				return fail(400, { error: 'Maximum 15 flasks per shipment' });
-			}
-
 			// Reject flasks already in an active (non-returned) shipment
 			const activeShipment = await db.query.boxContentLines.findFirst({
 				where: eq(boxContentLines.flaskId, parseInt(flaskId)),
@@ -365,12 +356,6 @@ export const actions: Actions = {
 					remarks: l.remarks,
 					...createAuditFields(locals.user.id)
 				}));
-
-			if (existingLines.length + linesToInsert.length > 15) {
-				return fail(400, {
-					error: `Cannot copy: would exceed the maximum of 15 flasks (current: ${existingLines.length}, to copy: ${linesToInsert.length}).`
-				});
-			}
 
 			if (linesToInsert.length > 0) {
 				await db.insert(boxContentLines).values(linesToInsert);
