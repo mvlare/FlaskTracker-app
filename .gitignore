@@ -24,3 +24,6 @@ vite.config.ts.timestamp-*
 
 # Drizzle migrations (managed in separate repo)
 drizzle/
+
+# Local-only scripts (not for version control)
+scripts/reset-password.ts
