@@ -5,7 +5,7 @@ import { boxes, boxContentHeaders, boxContentLines, flasks } from '$lib/server/d
 import { eq, desc, isNull, isNotNull, and, asc } from 'drizzle-orm';
 import { validateRequired, processRemarks, parseDateToUTC } from '$lib/server/utils/validation';
 import { formatDateDisplay } from '$lib/utils/dates';
-import { handleDatabaseError } from '$lib/server/utils/error-handling';
+import { handleDatabaseError, isUniqueConstraintViolation } from '$lib/server/utils/error-handling';
 import { createAuditFields, updateAuditFields } from '$lib/server/utils/audit';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
@@ -250,6 +250,9 @@ export const actions: Actions = {
 
 			return { success: true };
 		} catch (error) {
+			if (isUniqueConstraintViolation(error)) {
+				return fail(400, { error: 'This flask is already in this shipment' });
+			}
 			const { status, message } = handleDatabaseError(error, 'flask line');
 			return fail(status, { error: message });
 		}

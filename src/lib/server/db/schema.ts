@@ -101,20 +101,27 @@ export const boxContentHeaders = pgTable('box_content_headers', {
 });
 
 // 7. Box content lines — FK → box_content_headers, FK → flasks, FK to user for audit
-export const boxContentLines = pgTable('box_content_lines', {
-	id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
-	boxContentHeaderId: integer('box_content_header_id')
-		.notNull()
-		.references(() => boxContentHeaders.id),
-	flaskId: integer('flask_id')
-		.notNull()
-		.references(() => flasks.id),
-	remarks: text('remarks'),
-	createdAt: timestamptz('created_at').defaultNow(),
-	createdUserId: text('created_user_id').references(() => user.id, { onDelete: 'set null' }),
-	updatedAt: timestamptz('updated_at').defaultNow(),
-	updatedUserId: text('updated_user_id').references(() => user.id, { onDelete: 'set null' })
-});
+// Unique constraint on (box_content_header_id, flask_id) prevents duplicate flasks per shipment
+export const boxContentLines = pgTable(
+	'box_content_lines',
+	{
+		id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+		boxContentHeaderId: integer('box_content_header_id')
+			.notNull()
+			.references(() => boxContentHeaders.id),
+		flaskId: integer('flask_id')
+			.notNull()
+			.references(() => flasks.id),
+		remarks: text('remarks'),
+		createdAt: timestamptz('created_at').defaultNow(),
+		createdUserId: text('created_user_id').references(() => user.id, { onDelete: 'set null' }),
+		updatedAt: timestamptz('updated_at').defaultNow(),
+		updatedUserId: text('updated_user_id').references(() => user.id, { onDelete: 'set null' })
+	},
+	(table) => [
+		uniqueIndex('box_content_lines_unique_index_1').on(table.boxContentHeaderId, table.flaskId)
+	]
+);
 
 // Relations for box content tables
 export const boxesRelations = relations(boxes, ({ many }) => ({
