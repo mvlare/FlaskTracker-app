@@ -9,11 +9,7 @@ import {
 	parseDateToUTC,
 	validateDateNotFuture
 } from '$lib/server/utils/validation';
-import {
-	handleDatabaseError,
-	handleFlaskRefError,
-	isUniqueConstraintViolation
-} from '$lib/server/utils/error-handling';
+import { handleDatabaseError, handleFlaskRefError } from '$lib/server/utils/error-handling';
 import { updateAuditFields, createAuditFields } from '$lib/server/utils/audit';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -265,42 +261,54 @@ export const actions: Actions = {
 				})
 				.where(eq(flasks.id, flaskId));
 
-			// Insert new flask first
-			const [newFlask] = await db
-				.insert(flasks)
-				.values({
-					name: repairedFlaskName.trim(),
-					remarks: null,
-					brokenAt: null,
-					...createAuditFields(locals.user.id)
-				})
-				.returning({ id: flasks.id });
+			// Check if a flask with this name already exists
+			const existingFlask = await db.query.flasks.findFirst({
+				where: eq(flasks.name, repairedFlaskName.trim()),
+				columns: { id: true }
+			});
 
-			// Then insert flask reference using the root original flask ID
+			let newFlaskId: number;
+			let isNewFlask: boolean;
+
+			if (existingFlask) {
+				// Use the existing flask — skip creation
+				newFlaskId = existingFlask.id;
+				isNewFlask = false;
+			} else {
+				// Create a new flask
+				const [newFlask] = await db
+					.insert(flasks)
+					.values({
+						name: repairedFlaskName.trim(),
+						remarks: null,
+						brokenAt: null,
+						...createAuditFields(locals.user.id)
+					})
+					.returning({ id: flasks.id });
+				newFlaskId = newFlask.id;
+				isNewFlask = true;
+			}
+
+			// Insert flask reference using the root original flask ID
 			try {
 				await db.insert(flasksRef).values({
 					originalFlaskId: rootOriginalFlaskId,
-					newFlaskId: newFlask.id,
+					newFlaskId: newFlaskId,
 					flaskRefTypeId: repairedType.id,
 					...createAuditFields(locals.user.id)
 				});
 			} catch (refError) {
-				// If reference insert fails, handle the error
-				// Note: The flask was already created at this point
 				const { status, message } = handleFlaskRefError(refError);
-				return fail(status, {
-					error: `${message}. The flask "${repairedFlaskName.trim()}" was created but the reference link failed.`
-				});
+				if (isNewFlask) {
+					return fail(status, {
+						error: `${message}. The flask "${repairedFlaskName.trim()}" was created but the reference link failed.`
+					});
+				}
+				return fail(status, { error: message });
 			}
 
 			return { success: true };
 		} catch (error) {
-			// Handle unique constraint on flask name
-			if (isUniqueConstraintViolation(error)) {
-				return fail(400, { error: 'A flask with this name already exists' });
-			}
-
-			// Handle other errors during flask creation
 			const { status, message } = handleDatabaseError(error, 'flask');
 			return fail(status, { error: message });
 		}

@@ -80,7 +80,8 @@ export const flasksRef = pgTable(
 		updatedUserId: text('updated_user_id').references(() => user.id, { onDelete: 'set null' })
 	},
 	(table) => [
-		uniqueIndex('flasks_ref_unique_index_1').on(table.originalFlaskId, table.newFlaskId)
+		uniqueIndex('flasks_ref_unique_index_1').on(table.originalFlaskId, table.newFlaskId),
+		uniqueIndex('flasks_ref_unique_index_2').on(table.newFlaskId, table.flaskRefTypeId)
 	]
 );
 

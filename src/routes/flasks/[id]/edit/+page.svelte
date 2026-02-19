@@ -252,7 +252,7 @@
 									</div>
 									<div class="flex items-center gap-1 mt-1">
 										<Info class="h-3 w-3 text-gray-400" />
-										<p class="text-xs text-gray-500">Create repaired flask and link to this broken flask</p>
+										<p class="text-xs text-gray-500">Enter an existing or new flask name to link as repair</p>
 									</div>
 								</form>
 							</div>
