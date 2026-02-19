@@ -35,9 +35,33 @@
 		}
 	});
 
+	let modalRef: HTMLDivElement | undefined = $state();
+
 	function handleOverlayClick(event: MouseEvent) {
 		if (event.target === event.currentTarget) {
 			onClose();
+		}
+	}
+
+	function handleModalKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape') {
+			onClose();
+			return;
+		}
+		if (event.key === 'Tab') {
+			const focusable = modalRef?.querySelectorAll<HTMLElement>(
+				'button, input, [tabindex]:not([tabindex="-1"])'
+			);
+			if (!focusable?.length) return;
+			const first = focusable[0];
+			const last = focusable[focusable.length - 1];
+			if (event.shiftKey && document.activeElement === first) {
+				event.preventDefault();
+				last.focus();
+			} else if (!event.shiftKey && document.activeElement === last) {
+				event.preventDefault();
+				first.focus();
+			}
 		}
 	}
 </script>
@@ -47,12 +71,17 @@
 	onclick={handleOverlayClick}
 >
 	<div
+		bind:this={modalRef}
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="box-selector-title"
 		class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4"
 		onclick={(e) => e.stopPropagation()}
+		onkeydown={handleModalKeydown}
 	>
 		<!-- Header -->
 		<div class="px-6 py-4 border-b border-gray-200">
-			<h2 class="text-xl font-bold text-gray-800">Select Box</h2>
+			<h2 id="box-selector-title" class="text-xl font-bold text-gray-800">Select Box</h2>
 		</div>
 
 		<!-- Search Input -->

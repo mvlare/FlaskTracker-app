@@ -49,14 +49,24 @@
 		return sortOrder === 'asc' ? 'asc' : 'desc';
 	}
 
+	function updateSelectionUrl(flaskId: number) {
+		const url = new URL(window.location.href);
+		url.searchParams.set('flaskId', String(flaskId));
+		history.replaceState(history.state, '', url.toString());
+	}
+
 	function handleRowClick(index: number) {
 		selectedIndex = index;
 		if (onSelectFlask && flasks[index]) {
 			onSelectFlask(flasks[index]);
 		}
+		updateSelectionUrl(flasks[index].id);
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
+		const tag = document.activeElement?.tagName;
+		if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
 		if (flasks.length === 0) return;
 
 		if (event.key === 'ArrowDown') {
@@ -67,6 +77,7 @@
 				onSelectFlask(flasks[selectedIndex]);
 			}
 			scrollToRow(selectedIndex);
+			updateSelectionUrl(flasks[selectedIndex].id);
 		} else if (event.key === 'ArrowUp') {
 			event.preventDefault();
 			// If nothing selected, start at 0, otherwise move up
@@ -75,6 +86,10 @@
 				onSelectFlask(flasks[selectedIndex]);
 			}
 			scrollToRow(selectedIndex);
+			updateSelectionUrl(flasks[selectedIndex].id);
+		} else if (event.key === 'Enter' && selectedIndex >= 0 && flasks[selectedIndex]) {
+			event.preventDefault();
+			goto(`/flasks/${flasks[selectedIndex].id}/edit`);
 		}
 	}
 
@@ -89,6 +104,18 @@
 		// Focus table on mount to enable keyboard navigation
 		if (tableRef) {
 			tableRef.focus();
+		}
+		// Restore selection from URL if present (e.g. returning from edit page)
+		const params = new URLSearchParams(window.location.search);
+		const urlFlaskId = params.get('flaskId');
+		if (urlFlaskId) {
+			const idx = flasks.findIndex((f) => f.id === parseInt(urlFlaskId));
+			if (idx !== -1) {
+				selectedIndex = idx;
+				if (onSelectFlask) onSelectFlask(flasks[idx]);
+				scrollToRow(idx);
+				return; // skip hasActiveSearch auto-select
+			}
 		}
 		// Auto-select first flask if there's an active search
 		if (hasActiveSearch && flasks.length > 0 && onSelectFlask) {

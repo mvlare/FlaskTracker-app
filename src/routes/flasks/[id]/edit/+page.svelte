@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { goto } from '$app/navigation';
 	import { FlaskConical, ArrowLeft, Info, ChevronRight, X, Plus, GitBranch } from 'lucide-svelte';
 	import FloatingLabelInput from '$lib/components/form/FloatingLabelInput.svelte';
 	import FloatingLabelDatePicker from '$lib/components/form/FloatingLabelDatePicker.svelte';
@@ -41,7 +40,7 @@
 	});
 
 	function handleCancel() {
-		goto('/');
+		history.back();
 	}
 </script>
 

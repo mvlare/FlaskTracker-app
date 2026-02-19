@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import TopBar from '$lib/components/flasks/TopBar.svelte';
 	import SearchBar from '$lib/components/flasks/SearchBar.svelte';
 	import FlasksGrid from '$lib/components/flasks/FlasksGrid.svelte';
@@ -20,7 +21,25 @@
 	function handleSelectFlask(flask: typeof selectedFlask) {
 		selectedFlask = flask;
 	}
+
+	function handleGlobalKeydown(event: KeyboardEvent) {
+		const tag = document.activeElement?.tagName;
+		if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+		if (event.key === 'n') {
+			event.preventDefault();
+			goto('/flasks/new');
+		} else if (event.key === 'e' && selectedFlask) {
+			event.preventDefault();
+			goto(`/flasks/${selectedFlask.id}/edit`);
+		} else if (event.key === 'b') {
+			event.preventDefault();
+			goto('/box-content' + (selectedFlask ? '?returnFlaskId=' + selectedFlask.id : ''));
+		}
+	}
 </script>
+
+<svelte:window onkeydown={handleGlobalKeydown} />
 
 <TopBar />
 

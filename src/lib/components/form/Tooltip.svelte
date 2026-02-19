@@ -45,7 +45,7 @@
 		onmouseenter={show}
 		onmouseleave={hide}
 		onclick={toggle}
-		onkeydown={(e) => e.key === 'Enter' && toggle()}
+		onkeydown={(e) => { if (e.key === 'Enter') toggle(); else if (e.key === 'Escape' && isVisible) { e.stopPropagation(); isVisible = false; } }}
 		role="button"
 		tabindex="0"
 		aria-label="More information"

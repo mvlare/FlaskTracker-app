@@ -5,6 +5,35 @@
 	let { selectedFlaskId = null }: { selectedFlaskId?: number | null } = $props();
 
 	let showNewMenu = $state(false);
+	let menuRef: HTMLDivElement | undefined = $state();
+	let toggleButtonRef: HTMLButtonElement | undefined = $state();
+
+	function handleToggleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape') {
+			showNewMenu = false;
+		} else if (event.key === 'ArrowDown' && showNewMenu) {
+			event.preventDefault();
+			menuRef?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
+		}
+	}
+
+	function handleMenuKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape') {
+			showNewMenu = false;
+			toggleButtonRef?.focus();
+		} else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+			event.preventDefault();
+			const items = [...(menuRef?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])];
+			const idx = items.indexOf(document.activeElement as HTMLButtonElement);
+			if (event.key === 'ArrowDown') {
+				items[Math.min(idx + 1, items.length - 1)]?.focus();
+			} else if (idx === 0) {
+				toggleButtonRef?.focus();
+			} else {
+				items[Math.max(idx - 1, 0)]?.focus();
+			}
+		}
+	}
 
 	function handleNewFlask() {
 		goto('/flasks/new');
@@ -23,7 +52,7 @@
 	}
 
 	function handleBoxFlasks() {
-		goto('/box-content');
+		goto('/box-content' + (selectedFlaskId ? '?returnFlaskId=' + selectedFlaskId : ''));
 	}
 
 	// Close menu when clicking outside
@@ -46,7 +75,11 @@
 	<!-- + New Dropdown Button -->
 	<div class="relative new-menu-container">
 		<button
+			bind:this={toggleButtonRef}
 			onclick={() => (showNewMenu = !showNewMenu)}
+			onkeydown={handleToggleKeydown}
+			aria-haspopup="menu"
+			aria-expanded={showNewMenu}
 			class="flex items-center gap-2 px-4 py-2 bg-sky-500 text-gray-800 rounded-md hover:bg-sky-600 transition-colors font-medium text-sm shadow-sm"
 		>
 			<Plus class="h-4 w-4" />
@@ -56,10 +89,14 @@
 
 		{#if showNewMenu}
 			<div
+				bind:this={menuRef}
+				role="menu"
+				onkeydown={handleMenuKeydown}
 				class="absolute bottom-full mb-1 left-0 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-40"
 			>
 				<button
 					onclick={handleNewFlask}
+					role="menuitem"
 					class="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-sky-50 transition-colors"
 				>
 					<FlaskConical class="h-4 w-4" />
@@ -67,6 +104,7 @@
 				</button>
 				<button
 					onclick={handleNewBox}
+					role="menuitem"
 					class="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-sky-50 transition-colors"
 				>
 					<Box class="h-4 w-4" />

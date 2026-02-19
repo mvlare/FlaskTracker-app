@@ -2,12 +2,23 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
+	import { onMount } from 'svelte';
 	import { ArrowLeft, Plus, Save, Edit, Trash2, X, List, Search, Copy, Clipboard, Pencil, ArrowUpAZ, Maximize2, Minimize2 } from 'lucide-svelte';
 	import FloatingLabelInput from '$lib/components/form/FloatingLabelInput.svelte';
 	import FloatingLabelDatePicker from '$lib/components/form/FloatingLabelDatePicker.svelte';
 	import { formatDateDisplay } from '$lib/utils/dates';
 
 	let { data, form } = $props();
+
+	// Capture the flask to restore on the landing page (set once on mount, unaffected by internal navigation)
+	let returnFlaskId: string | null = null;
+	onMount(() => {
+		returnFlaskId = new URLSearchParams(window.location.search).get('returnFlaskId');
+	});
+
+	function handleBackToFlasks() {
+		goto(returnFlaskId ? `/?flaskId=${returnFlaskId}` : '/');
+	}
 
 	// Box selection state
 	let boxSearchQuery = $state('');
@@ -146,7 +157,7 @@
 	}
 
 	function handleCancelSelection() {
-		goto('/');
+		handleBackToFlasks();
 	}
 
 	function handleClosedShipmentClick(shipmentId: number) {
@@ -177,7 +188,7 @@
 		<!-- Header: Title and Back Button -->
 		<div class="mb-4">
 			<button
-				onclick={() => goto('/')}
+				onclick={handleBackToFlasks}
 				class="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-2"
 			>
 				<ArrowLeft class="h-4 w-4" />
@@ -889,9 +900,16 @@
 	</div>
 
 {#if showCopyConfirm}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="copy-confirm-title"
+		tabindex="-1"
+		onkeydown={(e) => { if (e.key === 'Escape') showCopyConfirm = false; }}
+	>
 		<div class="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
-			<h3 class="mb-2 text-lg font-semibold text-gray-900">Copy last return</h3>
+			<h3 id="copy-confirm-title" class="mb-2 text-lg font-semibold text-gray-900">Copy last return</h3>
 			<p class="mb-6 text-sm text-gray-600">
 				Copy all flasks from the last returned shipment to this shipment?
 			</p>
@@ -916,9 +934,16 @@
 {/if}
 
 {#if showDeleteConfirm}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="delete-confirm-title"
+		tabindex="-1"
+		onkeydown={(e) => { if (e.key === 'Escape') showDeleteConfirm = false; }}
+	>
 		<div class="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
-			<h3 class="mb-2 text-lg font-semibold text-gray-900">Delete flask</h3>
+			<h3 id="delete-confirm-title" class="mb-2 text-lg font-semibold text-gray-900">Delete flask</h3>
 			<p class="mb-6 text-sm text-gray-600">
 				Are you sure you want to delete flask <strong>{deleteFlaskName}</strong>?
 			</p>
