@@ -57,7 +57,7 @@
 					bind:value={email}
 					required
 					class="w-full rounded border px-3 py-2"
-					placeholder="admin@flasktracker.local"
+					placeholder="your@email.com"
 				/>
 			</div>
 

@@ -2,7 +2,7 @@
 	import { authClient } from "$lib/auth-client";
 	import { goto } from "$app/navigation";
 	import { page } from "$app/stores";
-	import { FlaskConical } from "lucide-svelte";
+	import { FlaskConical, User } from "lucide-svelte";
 
 	// Use server-side data instead of client stores to avoid SSR issues
 	const session = $derived($page.data.session);
@@ -16,7 +16,8 @@
 </script>
 
 <header class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 shadow-md">
-	<div class="flex items-center justify-between">
+	<div class="grid grid-cols-3 items-center">
+		<!-- Left: app title -->
 		<div class="flex items-center gap-4">
 			<FlaskConical class="h-12 w-12 text-white" />
 			<div>
@@ -24,18 +25,22 @@
 				<p class="text-xs text-white/90">Manage and monitor your laboratory flasks</p>
 			</div>
 		</div>
-		<div class="flex items-center gap-4">
+
+		<!-- Center: IMAU logo -->
+		<div class="flex justify-center">
 			<div class="rounded-md bg-white px-4 py-2 shadow-sm">
 				<img src="/imau-institute.png" alt="IMAU Institute" class="h-12 w-auto object-contain" />
 			</div>
+		</div>
 
+		<!-- Right: user controls -->
+		<div class="flex items-center justify-end gap-4">
 			{#if session}
-				<!-- User is signed in -->
 				<div class="flex items-center gap-3">
-					<span class="text-sm font-medium text-gray-200">
-						{user?.name || user?.email}
-					</span>
-					<!-- Admin Link -->
+					<div class="flex items-center gap-1.5 text-sm font-medium text-gray-200">
+						<User class="h-4 w-4" />
+						<span>{user?.name || user?.email}</span>
+					</div>
 					{#if isAdmin}
 						<button
 							onclick={() => goto("/admin/users")}
@@ -58,7 +63,6 @@
 					</button>
 				</div>
 			{:else}
-				<!-- User is not signed in -->
 				<button
 					onclick={() => goto("/auth/signin")}
 					class="rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-100 transition-colors shadow-sm"
