@@ -2,7 +2,7 @@
 	import { authClient } from "$lib/auth-client";
 	import { goto } from "$app/navigation";
 	import { page } from "$app/stores";
-	import { FlaskConical, User } from "lucide-svelte";
+	import { User } from "lucide-svelte";
 
 	// Use server-side data instead of client stores to avoid SSR issues
 	const session = $derived($page.data.session);
@@ -15,11 +15,11 @@
 	}
 </script>
 
-<header class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 shadow-md">
+<header class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-2 shadow-md">
 	<div class="grid grid-cols-3 items-center">
 		<!-- Left: app title -->
 		<div class="flex items-center gap-4">
-			<FlaskConical class="h-12 w-12 text-white" />
+			<img src="/Flask_Icon.png" alt="Flask" class="h-[5.88rem] w-[5.88rem] object-contain" />
 			<div>
 				<h1 class="text-xl font-bold text-white">Flask Tracking System</h1>
 				<p class="text-xs text-white/90">Manage and monitor your laboratory flasks</p>

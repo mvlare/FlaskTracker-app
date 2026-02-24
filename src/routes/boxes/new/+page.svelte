@@ -27,7 +27,7 @@
 			class="flex items-center gap-2 text-sky-600 hover:text-sky-700 mb-4"
 		>
 			<ArrowLeft class="h-4 w-4" />
-			Back to Flasks
+			Home
 		</button>
 		<div class="flex items-center gap-3">
 			<Box class="h-8 w-8 text-sky-600" />

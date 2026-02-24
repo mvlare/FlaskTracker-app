@@ -176,7 +176,7 @@
 							class="h-3 w-3 transition-transform duration-200 group-open:rotate-90"
 						/>
 						<GitBranch class="h-3 w-3" />
-						<span>Flask Tree</span>
+						<span>Flask broken history</span>
 					</div>
 				</summary>
 

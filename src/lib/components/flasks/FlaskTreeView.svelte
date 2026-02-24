@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { ArrowDown } from 'lucide-svelte';
 	import { formatDateDisplay } from '$lib/utils/dates';
 
 	interface TreeRow {
@@ -26,7 +27,8 @@
 			const response = await fetch(`/api/flasks/${id}/tree`);
 			if (!response.ok) throw new Error('Failed to fetch');
 			const data = await response.json();
-			treeData = data.treeData || [];
+			const rows: TreeRow[] = data.treeData || [];
+			treeData = rows.sort((a, b) => b.flask_id - a.flask_id);
 		} catch (err) {
 			error = 'Failed to load tree data';
 			treeData = [];
@@ -70,19 +72,17 @@
 		<table class="min-w-full divide-y divide-gray-200">
 			<thead class="bg-gray-100 {compact ? '' : 'sticky top-0'}">
 				<tr>
-					{#if !compact}
-						<th class="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-							Flask ID
-						</th>
-					{/if}
-					<th class="{compact ? 'px-1.5 py-1.5' : 'px-2 py-2'} text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-						Flask Name
+					<th class="{compact ? 'px-1.5 py-1.5' : 'px-2 py-2'} text-left text-xs font-semibold text-gray-700 tracking-wider">
+						<span class="flex items-center gap-1">
+							Id
+							<ArrowDown class="h-3 w-3 text-blue-600" />
+						</span>
 					</th>
-					<th class="{compact ? 'px-1.5 py-1.5' : 'px-2 py-2'} text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-						Reference Type
+					<th class="{compact ? 'px-1.5 py-1.5' : 'px-2 py-2'} text-left text-xs font-semibold text-gray-700 tracking-wider">
+						Flask name
 					</th>
-					<th class="{compact ? 'px-1.5 py-1.5' : 'px-2 py-2'} text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-						Broken Date
+					<th class="{compact ? 'px-1.5 py-1.5' : 'px-2 py-2'} text-left text-xs font-semibold text-gray-700 tracking-wider">
+						Broken date
 					</th>
 				</tr>
 			</thead>
@@ -94,11 +94,9 @@
 						class:border-l-4={currentFlaskName && row.flask_name === currentFlaskName}
 						class:border-blue-500={currentFlaskName && row.flask_name === currentFlaskName}
 					>
-						{#if !compact}
-							<td class="px-2 py-3 whitespace-nowrap text-sm text-gray-900">
-								{row.flask_id}
-							</td>
-						{/if}
+						<td class="{compact ? 'px-1.5 py-2 text-xs' : 'px-2 py-3 text-sm'} whitespace-nowrap text-gray-900">
+							{row.flask_id}
+						</td>
 						<td
 							class="{compact ? 'px-1.5 py-2 text-xs' : 'px-2 py-3 text-sm'} whitespace-nowrap font-medium"
 							class:text-blue-900={currentFlaskName && row.flask_name === currentFlaskName}
@@ -106,17 +104,6 @@
 							class:text-gray-900={!currentFlaskName || row.flask_name !== currentFlaskName}
 						>
 							{row.flask_name}
-						</td>
-						<td class="{compact ? 'px-1.5 py-2' : 'px-2 py-3'} whitespace-nowrap">
-							<span
-								class="px-2 py-1 rounded-md {compact ? 'text-xs' : 'text-xs'} font-medium"
-								class:bg-blue-100={row.flask_ref_type_name === 'original'}
-								class:text-blue-800={row.flask_ref_type_name === 'original'}
-								class:bg-sky-100={row.flask_ref_type_name !== 'original'}
-								class:text-sky-800={row.flask_ref_type_name !== 'original'}
-							>
-								{row.flask_ref_type_name}
-							</span>
 						</td>
 						<td class="{compact ? 'px-1.5 py-2 text-xs' : 'px-2 py-3 text-sm'} whitespace-nowrap text-gray-700">
 							{formatDateDisplay(row.flask_broken_at) || '-'}

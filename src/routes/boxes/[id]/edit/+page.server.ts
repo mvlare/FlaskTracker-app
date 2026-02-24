@@ -2,7 +2,7 @@ import { db } from '$lib/server/db';
 import { boxes, boxContentHeaders } from '$lib/server/db/schema';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect, error } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
+import { eq, isNotNull, and } from 'drizzle-orm';
 import { validateRequired, processRemarks } from '$lib/server/utils/validation';
 import { handleDatabaseError } from '$lib/server/utils/error-handling';
 import { updateAuditFields } from '$lib/server/utils/audit';
@@ -25,9 +25,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		throw error(404, 'Box not found');
 	}
 
-	// Check if this box is referenced in any shipment header — if so, name cannot be changed
+	// Name is read-only when any header for this box has ready_at filled
 	const inShipment = await db.query.boxContentHeaders.findFirst({
-		where: eq(boxContentHeaders.boxId, boxId),
+		where: and(eq(boxContentHeaders.boxId, boxId), isNotNull(boxContentHeaders.readyAt)),
 		columns: { id: true }
 	});
 
@@ -57,7 +57,7 @@ export const actions: Actions = {
 			return fail(400, { error: nameError });
 		}
 
-		// Block name change if the box is used in any shipment header
+		// Block name change if any header for this box has ready_at filled
 		const currentBox = await db.query.boxes.findFirst({
 			where: eq(boxes.id, boxId),
 			columns: { name: true }
@@ -65,11 +65,11 @@ export const actions: Actions = {
 
 		if (currentBox && name.trim() !== currentBox.name) {
 			const inShipment = await db.query.boxContentHeaders.findFirst({
-				where: eq(boxContentHeaders.boxId, boxId),
+				where: and(eq(boxContentHeaders.boxId, boxId), isNotNull(boxContentHeaders.readyAt)),
 				columns: { id: true }
 			});
 			if (inShipment) {
-				return fail(400, { error: 'Box name cannot be changed because it is used in a shipment.' });
+				return fail(400, { error: 'Box name cannot be changed because it is used.' });
 			}
 		}
 

@@ -31,7 +31,7 @@
 			class="flex items-center gap-2 text-sky-600 hover:text-sky-700 mb-4"
 		>
 			<ArrowLeft class="h-4 w-4" />
-			Back to Box Shipments
+			Boxes
 		</button>
 		<div class="flex items-center gap-3">
 			<Box class="h-8 w-8 text-sky-600" />
@@ -76,7 +76,7 @@
 			<div class="flex items-center gap-1 mt-1">
 				<Info class="h-3 w-3 text-gray-400" />
 				{#if data.nameReadOnly}
-					<p class="text-xs text-amber-600">Name cannot be changed — this box is used in a shipment.</p>
+					<p class="text-xs text-amber-600">Name cannot be changed — this box is used.</p>
 				{:else}
 					<p class="text-xs text-gray-500">Required. This name must be unique.</p>
 				{/if}

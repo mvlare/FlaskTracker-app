@@ -2,7 +2,7 @@ import { db } from '$lib/server/db';
 import { flasks, flaskLowPressureEvents, flasksRef, flaskRefType, boxContentLines } from '$lib/server/db/schema';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect, error } from '@sveltejs/kit';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, gt } from 'drizzle-orm';
 import {
 	validateRequired,
 	processRemarks,
@@ -43,13 +43,25 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		columns: { id: true }
 	});
 
+	// Check if broken date is locked — resolve chain root first, then check for a successor
+	const flaskAsNew = await db.query.flasksRef.findFirst({
+		where: eq(flasksRef.newFlaskId, flaskId),
+		columns: { originalFlaskId: true }
+	});
+	const rootId = flaskAsNew?.originalFlaskId ?? flaskId;
+	const hasRepairedSuccessor = await db.query.flasksRef.findFirst({
+		where: and(eq(flasksRef.originalFlaskId, rootId), gt(flasksRef.newFlaskId, flaskId)),
+		columns: { id: true }
+	});
+
 	return {
 		flask,
 		lowPressureEvents: lowPressureEventsData.map((e) => ({
 			id: e.id,
 			lowPressureAt: e.lowPressureAt.toISOString().split('T')[0] // Date only
 		})),
-		nameReadOnly: !!inShipment
+		nameReadOnly: !!inShipment,
+		brokenAtReadOnly: !!hasRepairedSuccessor
 	};
 };
 
@@ -79,7 +91,7 @@ export const actions: Actions = {
 		// Block name change if the flask is used in any shipment
 		const currentFlask = await db.query.flasks.findFirst({
 			where: eq(flasks.id, flaskId),
-			columns: { name: true }
+			columns: { name: true, brokenAt: true }
 		});
 
 		if (currentFlask && name.trim() !== currentFlask.name) {
@@ -92,10 +104,24 @@ export const actions: Actions = {
 			}
 		}
 
+		// If a repaired successor with a higher ID exists, preserve the existing broken date
+		// Resolve chain root first (middle flasks appear as newFlaskId, not originalFlaskId)
+		const flaskAsNew = await db.query.flasksRef.findFirst({
+			where: eq(flasksRef.newFlaskId, flaskId),
+			columns: { originalFlaskId: true }
+		});
+		const rootId = flaskAsNew?.originalFlaskId ?? flaskId;
+		const hasRepairedSuccessor = await db.query.flasksRef.findFirst({
+			where: and(eq(flasksRef.originalFlaskId, rootId), gt(flasksRef.newFlaskId, flaskId)),
+			columns: { id: true }
+		});
+
 		try {
 			// Process inputs using utilities
 			const remarksValue = processRemarks(remarksRaw);
-			const brokenAtDate = parseDateToUTC(brokenAtRaw ? String(brokenAtRaw) : null);
+			const brokenAtDate = hasRepairedSuccessor
+				? (currentFlask?.brokenAt ?? null)
+				: parseDateToUTC(brokenAtRaw ? String(brokenAtRaw) : null);
 
 			// Update the flask with audit trail
 			await db

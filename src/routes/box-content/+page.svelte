@@ -3,10 +3,10 @@
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
 	import { onMount } from 'svelte';
-	import { ArrowLeft, Plus, Save, Edit, Trash2, X, List, Search, Copy, Clipboard, Pencil, ArrowUpAZ, Maximize2, Minimize2 } from 'lucide-svelte';
+	import { ArrowLeft, Plus, Save, Edit, Trash2, X, List, Search, Copy, Clipboard, Pencil, ArrowUpAZ, Maximize2, Minimize2, Check } from 'lucide-svelte';
 	import FloatingLabelInput from '$lib/components/form/FloatingLabelInput.svelte';
 	import FloatingLabelDatePicker from '$lib/components/form/FloatingLabelDatePicker.svelte';
-	import { formatDateDisplay } from '$lib/utils/dates';
+	import { formatDateDisplay, formatForSubmission } from '$lib/utils/dates';
 
 	let { data, form } = $props();
 
@@ -85,6 +85,9 @@
 	let showViewRemarks = $state(false);
 	let viewRemarksText = $state('');
 
+	let readyAtValue = $state('');
+	let returnedAtValue = $state('');
+
 	// Load all boxes on mount
 	$effect(() => {
 		fetch('/api/boxes')
@@ -125,6 +128,12 @@
 		shipmentRemarksExpanded = false;
 		returnedRemarksExpanded = false;
 		flaskLineEditExpanded = false;
+		readyAtValue = data.openShipment?.readyAt
+			? data.openShipment.readyAt.toISOString().split('T')[0]
+			: '';
+		returnedAtValue = data.openShipment?.returnedAt
+			? data.openShipment.returnedAt.toISOString().split('T')[0]
+			: '';
 	});
 
 	function handleBoxSelect(boxId: number, boxName: string) {
@@ -189,12 +198,12 @@
 		<div class="mb-4">
 			<button
 				onclick={handleBackToFlasks}
-				class="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-2"
+				class="flex items-center gap-2 text-sky-600 hover:text-sky-700 mb-2"
 			>
 				<ArrowLeft class="h-4 w-4" />
-				Back to Flasks
+				Home
 			</button>
-			<h1 class="text-3xl font-bold text-gray-900">Box shipments</h1>
+			<h1 class="text-3xl font-bold text-gray-900">Boxes</h1>
 		</div>
 
 		<!-- Error message -->
@@ -214,7 +223,7 @@
 		<!-- Main grid: always visible -->
 		<div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
 			<!-- LEFT column: Box search (always) + Shipments panel (when box selected) -->
-			<div class="col-span-1 lg:col-span-2 flex flex-col gap-6">
+			<div class="col-span-1 lg:col-span-2 flex flex-col gap-2">
 				<!-- Box search (always visible) -->
 				<div class="bg-white rounded-lg shadow border border-gray-200">
 					<div class="p-3 {isPickerOpen ? 'border-b border-gray-200' : ''}">
@@ -224,11 +233,13 @@
 								id="boxSearch"
 								name="boxSearch"
 								type="text"
+								autocomplete="off"
 								bind:value={boxSearchQuery}
+								onfocus={() => (isPickerOpen = true)}
 								onkeydown={handleBoxSearchKeydown}
 								placeholder=" "
 								disabled={isLoadingBoxes}
-								class="block w-full pl-10 pt-6 pb-2 pr-14 text-gray-900 bg-white border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent peer disabled:bg-gray-100 {isBoxSelected
+								class="block w-full pl-10 pt-6 pb-2 pr-10 text-gray-900 bg-white border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent peer disabled:bg-gray-100 {isBoxSelected
 									? 'font-bold'
 									: ''}"
 							/>
@@ -239,17 +250,6 @@
 								Search Box name
 							</label>
 							<div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-								{#if data.box}
-									<button
-										type="button"
-										onclick={() => goto(`/boxes/${data.box.id}/edit`)}
-										tabindex="-1"
-										title="Edit box"
-										class="text-sky-500 hover:text-sky-700 transition-colors"
-									>
-										<Pencil class="h-4 w-4" />
-									</button>
-								{/if}
 								{#if boxSearchQuery.length > 0}
 									<button
 										type="button"
@@ -292,6 +292,17 @@
 					{/if}
 				</div>
 
+				{#if data.box && data.closedShipments.length === 0}
+					<button
+						type="button"
+						onclick={() => goto(`/boxes/${data.box!.id}/edit`)}
+						class="self-start flex items-center gap-1.5 px-3 py-1 text-sm border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50 transition-colors"
+					>
+						<Pencil class="h-4 w-4" />
+						Edit Box
+					</button>
+				{/if}
+
 				<!-- Shipments panel (only when a box is selected) -->
 				{#if data.box}
 					<div class="bg-white rounded-lg shadow p-6">
@@ -307,7 +318,7 @@
 									? 'border-sky-500 text-sky-600 font-semibold'
 									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
 							>
-								New
+								Current
 							</button>
 							<button
 								type="button"
@@ -321,153 +332,153 @@
 									? 'border-sky-500 text-sky-600 font-semibold'
 									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
 							>
-								Returned
+								History
 							</button>
 						</div>
 
 						<!-- Tab Content -->
 						{#if activeTab === 'new'}
-							<!-- NEW TAB: Open shipment form -->
-							{#if data.openShipment}
-								{@const openShipment = data.openShipment}
-								<form
-									method="POST"
-									action="?/updateHeader"
-									use:enhance={({ formData, cancel }) => {
-										const destination = (formData.get('destinationText') as string) ?? '';
-										const returnedAt = (formData.get('returnedAt') as string) ?? '';
-										if (returnedAt && !destination.trim()) {
-											headerError = 'Destination is required when a return date is set.';
-											cancel();
-											return;
-										}
-										headerError = '';
-										isSubmitting = true;
-										return async ({ update }) => {
-											isSubmitting = false;
-											await update({ reset: false });
-										};
-									}}
-								>
-									<input type="hidden" name="headerId" value={openShipment.id} />
+							<!-- NEW TAB: Unified form (creates or updates header) -->
+							<form
+								method="POST"
+								action={data.openShipment ? '?/updateHeader' : '?/createHeader'}
+								use:enhance={({ formData, cancel }) => {
+									const destination = (formData.get('destinationText') as string) ?? '';
+									const returnedAt = (formData.get('returnedAt') as string) ?? '';
+									if (returnedAt && !destination.trim()) {
+										headerError = 'Destination is required when a return date is set.';
+										cancel();
+										return;
+									}
+									headerError = '';
+									isSubmitting = true;
+									return async ({ update }) => {
+										isSubmitting = false;
+										await update({ reset: false });
+									};
+								}}
+							>
+								{#if data.openShipment}
+									<input type="hidden" name="headerId" value={data.openShipment.id} />
+								{:else}
+									<input type="hidden" name="boxId" value={data.box.id} />
+								{/if}
 
-									<div class="space-y-4">
-										<FloatingLabelInput
-											id="destination"
-											name="destinationText"
-											label="Destination"
-											type="text"
-											value={openShipment.destinationText || ''}
-											disabled={isSubmitting}
-										/>
+								<div class="space-y-4">
+									<FloatingLabelInput
+										id="destination"
+										name="destinationText"
+										label="Destination"
+										type="text"
+										value={data.openShipment?.destinationText || ''}
+										disabled={isSubmitting}
+									/>
 
-										<FloatingLabelDatePicker
-											id="readyAt"
-											name="readyAt"
-											label="Ready"
-											value={openShipment.readyAt
-												? openShipment.readyAt.toISOString().split('T')[0]
-												: ''}
-											disabled={isSubmitting}
-											placeholder="dd-mm-yyyy"
-										/>
-
-										<FloatingLabelDatePicker
-											id="returnedAt"
-											name="returnedAt"
-											label="Returned"
-											value={openShipment.returnedAt
-												? openShipment.returnedAt.toISOString().split('T')[0]
-												: ''}
-											disabled={isSubmitting}
-											placeholder="dd-mm-yyyy"
-										/>
-
-										<!-- Remarks Textarea with expand toggle -->
-										<div class="relative">
-											<textarea
-												id="remarks"
-												name="remarks"
-												rows={shipmentRemarksExpanded ? 10 : 3}
+									<div class="flex items-center gap-2">
+										<div class="flex-1">
+											<FloatingLabelDatePicker
+												id="readyAt"
+												name="readyAt"
+												label="Ready"
+												bind:value={readyAtValue}
 												disabled={isSubmitting}
-												placeholder=" "
-												class="block w-full px-3 pt-6 pb-2 pr-8 text-gray-900 bg-white border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent peer disabled:bg-gray-100 resize-none"
-												value={openShipment.remarks || ''}
-											></textarea>
-											<label
-												for="remarks"
-												class="absolute text-gray-500 duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-left start-3 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-disabled:text-gray-400"
-											>
-												Remarks
-											</label>
-											<button
-												type="button"
-												tabindex="-1"
-												onclick={() => (shipmentRemarksExpanded = !shipmentRemarksExpanded)}
-												class="absolute top-2 right-2 text-gray-400 hover:text-gray-600 transition-colors"
-												title={shipmentRemarksExpanded ? 'Collapse' : 'Expand'}
-											>
-												{#if shipmentRemarksExpanded}
-													<Minimize2 class="h-3.5 w-3.5" />
-												{:else}
-													<Maximize2 class="h-3.5 w-3.5" />
-												{/if}
-											</button>
+												placeholder="dd-mm-yyyy"
+											/>
 										</div>
-
-										{#if headerError}
-											<p class="text-sm text-red-600">{headerError}</p>
-										{/if}
-
-										<div class="flex gap-2">
-											<button
-												type="button"
-												onclick={handleCancelSelection}
-												disabled={isSubmitting}
-												class="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
-											>
-												Cancel
-											</button>
-											<button
-												type="submit"
-												disabled={isSubmitting}
-												class="px-6 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors font-medium"
-											>
-												{isSubmitting ? 'Saving...' : 'Save'}
-											</button>
-										</div>
+										<button
+											type="button"
+											tabindex="-1"
+											onclick={() => (readyAtValue = formatForSubmission(new Date()))}
+											disabled={isSubmitting}
+											title="Set to today"
+											class="text-gray-400 hover:text-sky-600 disabled:text-gray-300 transition-colors flex-shrink-0"
+										>
+											<Check class="h-4 w-4" />
+										</button>
 									</div>
-								</form>
-							{:else}
-								<div class="text-gray-500 text-center py-8">
-									<p class="mb-4">No open shipment.</p>
-									<form
-										method="POST"
-										action="?/createHeader"
-										use:enhance={() => {
-											isSubmitting = true;
-											return async ({ update }) => {
-												isSubmitting = false;
-												await update();
-											};
-										}}
-									>
-										<input type="hidden" name="boxId" value={data.box.id} />
+
+									<div class="flex items-center gap-2">
+										<div class="flex-1">
+											<FloatingLabelDatePicker
+												id="returnedAt"
+												name="returnedAt"
+												label="Returned"
+												bind:value={returnedAtValue}
+												disabled={isSubmitting}
+												placeholder="dd-mm-yyyy"
+											/>
+										</div>
+										<button
+											type="button"
+											tabindex="-1"
+											onclick={() => (returnedAtValue = formatForSubmission(new Date()))}
+											disabled={isSubmitting}
+											title="Set to today"
+											class="text-gray-400 hover:text-sky-600 disabled:text-gray-300 transition-colors flex-shrink-0"
+										>
+											<Check class="h-4 w-4" />
+										</button>
+									</div>
+
+									<!-- Remarks Textarea with expand toggle -->
+									<div class="relative">
+										<textarea
+											id="remarks"
+											name="remarks"
+											rows={shipmentRemarksExpanded ? 10 : 3}
+											disabled={isSubmitting}
+											placeholder=" "
+											class="block w-full px-3 pt-6 pb-2 pr-8 text-gray-900 bg-white border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent peer disabled:bg-gray-100 resize-none"
+											value={data.openShipment?.remarks || ''}
+										></textarea>
+										<label
+											for="remarks"
+											class="absolute text-gray-500 duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-left start-3 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-disabled:text-gray-400"
+										>
+											Remarks
+										</label>
+										<button
+											type="button"
+											tabindex="-1"
+											onclick={() => (shipmentRemarksExpanded = !shipmentRemarksExpanded)}
+											class="absolute top-2 right-2 text-gray-400 hover:text-gray-600 transition-colors"
+											title={shipmentRemarksExpanded ? 'Collapse' : 'Expand'}
+										>
+											{#if shipmentRemarksExpanded}
+												<Minimize2 class="h-3.5 w-3.5" />
+											{:else}
+												<Maximize2 class="h-3.5 w-3.5" />
+											{/if}
+										</button>
+									</div>
+
+									{#if headerError}
+										<p class="text-sm text-red-600">{headerError}</p>
+									{/if}
+
+									<div class="flex gap-2">
+										<button
+											type="button"
+											onclick={handleCancelSelection}
+											disabled={isSubmitting}
+											class="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+										>
+											Cancel
+										</button>
 										<button
 											type="submit"
 											disabled={isSubmitting}
-											class="inline-flex items-center gap-2 px-4 py-2 bg-sky-500 text-gray-800 rounded-md hover:bg-sky-600 disabled:bg-gray-300 disabled:text-gray-500 transition-colors font-medium shadow-sm"
+											class="px-6 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors font-medium"
 										>
-											<Plus class="h-4 w-4" />
-											Create New Shipment
+											{isSubmitting ? 'Saving...' : 'Save'}
 										</button>
-									</form>
+									</div>
 								</div>
-							{/if}
+							</form>
 						{:else}
 							<!-- RETURNED TAB: List of closed shipments + readonly detail fields -->
 							{#if data.closedShipments.length === 0}
-								<p class="text-gray-500 text-center py-8">No closed shipments yet.</p>
+								<p class="text-gray-500 text-center py-8">No history yet.</p>
 							{:else}
 								<!-- Compact selector list -->
 								<div class="space-y-1.5 max-h-36 overflow-y-auto mb-4">
@@ -601,12 +612,13 @@
 					<div class="bg-white rounded-lg shadow p-6 flex-1">
 						<div class="flex justify-between items-center mb-3">
 							<div>
-								<h2 class="text-lg font-semibold text-gray-900">Flasks of shipment{data.box ? ` — ${data.box.name}` : ''}{#if focusedShipmentId} <span class="text-sm font-normal text-gray-500">({data.focusedShipmentLines.length})</span>{/if}</h2>
+								<h2 class="text-lg font-semibold text-gray-900">Flasks in{data.box ? ` ${data.box.name}` : ''}{#if focusedShipmentId} <span class="text-sm font-normal text-gray-500">({data.focusedShipmentLines.length})</span>{/if}</h2>
 								{#if focusedShipment && (focusedShipment.readyAt || focusedShipment.returnedAt)}
-									<p class="text-xs text-gray-500 mt-0.5">
-										{focusedShipment.readyAt ? formatDateDisplay(focusedShipment.readyAt) : '?'}
+									<p class="text-xs mt-0.5">
+										<span class="font-semibold text-gray-900">History:</span>
+										<span class="text-gray-500">{focusedShipment.readyAt ? formatDateDisplay(focusedShipment.readyAt) : '?'}
 										→
-										{focusedShipment.returnedAt ? formatDateDisplay(focusedShipment.returnedAt) : '?'}
+										{focusedShipment.returnedAt ? formatDateDisplay(focusedShipment.returnedAt) : '?'}</span>
 									</p>
 								{/if}
 							</div>

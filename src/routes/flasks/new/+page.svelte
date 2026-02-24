@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import { FlaskConical, ArrowLeft, Info, ChevronRight } from 'lucide-svelte';
+	import { ArrowLeft, Info, ChevronRight, Check } from 'lucide-svelte';
 	import FloatingLabelInput from '$lib/components/form/FloatingLabelInput.svelte';
 	import FloatingLabelDatePicker from '$lib/components/form/FloatingLabelDatePicker.svelte';
 	import Tooltip from '$lib/components/form/Tooltip.svelte';
+	import { formatForSubmission } from '$lib/utils/dates';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
@@ -29,10 +30,11 @@
 			class="flex items-center gap-2 text-sky-600 hover:text-sky-700 mb-4"
 		>
 			<ArrowLeft class="h-4 w-4" />
-			Back to Flasks
+			Home
 		</button>
 		<div class="flex items-center gap-3">
-			<FlaskConical class="h-8 w-8 text-sky-600" />
+			<img src="/Flask_Icon.png" alt="Flask" class="h-12 w-12 object-contain"
+			style="filter: brightness(0) saturate(100%) invert(29%) sepia(92%) saturate(1265%) hue-rotate(186deg) brightness(92%)" />
 			<h1 class="text-3xl font-bold text-gray-800">New Flask</h1>
 		</div>
 	</div>
@@ -113,14 +115,28 @@
 
 				<!-- Broken Date -->
 				<div>
-					<FloatingLabelDatePicker
-						id="brokenAt"
-						name="brokenAt"
-						label="Broken Date"
-						bind:value={brokenAt}
-						disabled={isSubmitting}
-						placeholder="dd-mm-yyyy"
-					/>
+					<div class="flex items-center gap-2">
+						<div class="flex-1">
+							<FloatingLabelDatePicker
+								id="brokenAt"
+								name="brokenAt"
+								label="Broken Date"
+								bind:value={brokenAt}
+								disabled={isSubmitting}
+								placeholder="dd-mm-yyyy"
+							/>
+						</div>
+						<button
+							type="button"
+							tabindex="-1"
+							onclick={() => (brokenAt = formatForSubmission(new Date()))}
+							disabled={isSubmitting}
+							title="Set to today"
+							class="text-gray-400 hover:text-sky-600 disabled:text-gray-300 transition-colors flex-shrink-0"
+						>
+							<Check class="h-4 w-4" />
+						</button>
+					</div>
 					<div class="flex items-center gap-1 mt-1">
 						<Tooltip text="Date when the flask was broken (format: dd-mm-yyyy).">
 							<Info class="h-3 w-3 text-gray-400 hover:text-gray-600" />

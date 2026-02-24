@@ -11,7 +11,6 @@
 		remarks: string | null;
 		brokenAt: Date | string | null;
 		boxName: string | null;
-		shipmentStatus: string | null;
 	}
 
 	let {
@@ -176,9 +175,6 @@
 						{/if}
 					</button>
 				</th>
-				<th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 tracking-wider w-24">
-					Shipment
-				</th>
 				<th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 tracking-wider w-32">
 					Broken Date
 				</th>
@@ -187,7 +183,7 @@
 		<tbody class="bg-white divide-y divide-gray-200">
 			{#if flasks.length === 0}
 				<tr>
-					<td colspan="5" class="px-4 py-8 text-center text-gray-500">
+					<td colspan="4" class="px-4 py-8 text-center text-gray-500">
 						No flasks found. Try adjusting your search filters.
 					</td>
 				</tr>
@@ -208,17 +204,6 @@
 						</td>
 						<td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
 							{flask.boxName || '-'}
-						</td>
-						<td class="px-4 py-2 whitespace-nowrap text-sm">
-							{#if flask.shipmentStatus === 'New'}
-								<span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-									New
-								</span>
-							{:else if flask.shipmentStatus === 'Returned'}
-								<span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-									Returned
-								</span>
-							{/if}
 						</td>
 						<td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700 w-32">
 							{formatDateDisplay(flask.brokenAt) || '-'}

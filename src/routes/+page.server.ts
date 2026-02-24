@@ -22,28 +22,14 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const sortOrder = url.searchParams.get('sortOrder') || 'desc';
 
 	try {
-		// Correlated subquery: pick one box name per flask
-		// Priority: open shipment (returned_at IS NULL) first, then most recently returned
-		// Written as raw SQL with aliases to avoid Drizzle stripping table qualifiers
+		// Correlated subquery: pick the box name only for open shipments (returned_at IS NULL)
 		const boxNameSubquery = sql<string | null>`(
 			SELECT bx.name
 			FROM box_content_lines bcl
 			JOIN box_content_headers bch ON bcl.box_content_header_id = bch.id
 			JOIN boxes bx ON bch.box_id = bx.id
 			WHERE bcl.flask_id = flasks.id
-			ORDER BY (bch.returned_at IS NOT NULL), bch.returned_at DESC NULLS LAST
-			LIMIT 1
-		)`;
-
-		// Correlated subquery: shipment status for the same box row
-		// 'New' = box assigned but not yet returned, 'Returned' = returned
-		const shipmentStatusSubquery = sql<string | null>`(
-			SELECT CASE WHEN bch.returned_at IS NULL THEN 'New' ELSE 'Returned' END
-			FROM box_content_lines bcl
-			JOIN box_content_headers bch ON bcl.box_content_header_id = bch.id
-			JOIN boxes bx ON bch.box_id = bx.id
-			WHERE bcl.flask_id = flasks.id
-			ORDER BY (bch.returned_at IS NOT NULL), bch.returned_at DESC NULLS LAST
+			AND bch.returned_at IS NULL
 			LIMIT 1
 		)`;
 
@@ -54,8 +40,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 				name: flasks.name,
 				remarks: flasks.remarks,
 				brokenAt: flasks.brokenAt,
-				boxName: boxNameSubquery,
-				shipmentStatus: shipmentStatusSubquery
+				boxName: boxNameSubquery
 			})
 			.from(flasks)
 			.$dynamic();
