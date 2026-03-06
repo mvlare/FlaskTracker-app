@@ -24,9 +24,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 		event.locals.isAdmin = userRecord[0]?.isAdmin || false;
 
-		// Debug log to check if isAdmin is being set
-		console.log('User:', session.user.email, 'isAdmin:', event.locals.isAdmin);
-	} else {
+} else {
 		event.locals.isAdmin = false;
 	}
 

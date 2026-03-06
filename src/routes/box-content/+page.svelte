@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
 	import { onMount } from 'svelte';
-	import { ArrowLeft, Plus, Save, Edit, Trash2, X, List, Search, Copy, Clipboard, Pencil, ArrowUpAZ, Maximize2, Minimize2, Check } from 'lucide-svelte';
+	import { ArrowLeft, Plus, Save, Edit, Trash2, X, List, Search, Copy, Clipboard, Pencil, ArrowUpAZ, Maximize2, Minimize2, Check, Wind } from 'lucide-svelte';
 	import FloatingLabelInput from '$lib/components/form/FloatingLabelInput.svelte';
 	import FloatingLabelDatePicker from '$lib/components/form/FloatingLabelDatePicker.svelte';
 	import { formatDateDisplay, formatForSubmission } from '$lib/utils/dates';
@@ -622,42 +622,53 @@
 									</p>
 								{/if}
 							</div>
-							{#if isBlock3Editable && focusedShipmentId}
+							{#if focusedShipmentId}
 								<div class="flex gap-2">
-									{#if data.closedShipments.length > 0}
-										<form
-											method="POST"
-											action="?/copyLastReturn"
-											bind:this={copyFormEl}
-											use:enhance={() => {
-												isSubmitting = true;
-												return async ({ update }) => {
-													isSubmitting = false;
-													await update();
-												};
-											}}
-										>
-											<input type="hidden" name="headerId" value={focusedShipmentId} />
-											<input type="hidden" name="boxId" value={data.box!.id} />
-											<button
-												type="button"
-												disabled={isSubmitting}
-												onclick={() => (showCopyConfirm = true)}
-												class="flex items-center gap-2 px-3 py-1.5 text-sm bg-sky-500 text-gray-800 rounded-md hover:bg-sky-600 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors font-medium shadow-sm"
-											>
-												<Copy class="h-4 w-4" />
-												Copy last return
-											</button>
-										</form>
-									{/if}
 									<button
 										type="button"
-										onclick={() => (showAddFlask = !showAddFlask)}
-										class="flex items-center gap-2 px-3 py-1.5 text-sm bg-sky-500 text-gray-800 rounded-md hover:bg-sky-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors font-medium shadow-sm"
+										onclick={() => focusedShipment?.readyAt && goto(`/sampling/${focusedShipmentId}?boxId=${data.box!.id}`)}
+										disabled={!focusedShipment?.readyAt}
+										class="flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-colors font-medium shadow-sm {focusedShipment?.readyAt ? 'bg-sky-500 text-gray-800 hover:bg-sky-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}"
 									>
-										<Plus class="h-4 w-4" />
-										Add Flask
+										<Wind class="h-4 w-4" />
+										Sampling sheet
 									</button>
+									{#if isBlock3Editable}
+										{#if data.closedShipments.length > 0}
+											<form
+												method="POST"
+												action="?/copyLastReturn"
+												bind:this={copyFormEl}
+												use:enhance={() => {
+													isSubmitting = true;
+													return async ({ update }) => {
+														isSubmitting = false;
+														await update();
+													};
+												}}
+											>
+												<input type="hidden" name="headerId" value={focusedShipmentId} />
+												<input type="hidden" name="boxId" value={data.box!.id} />
+												<button
+													type="button"
+													disabled={isSubmitting}
+													onclick={() => (showCopyConfirm = true)}
+													class="flex items-center gap-2 px-3 py-1.5 text-sm bg-sky-500 text-gray-800 rounded-md hover:bg-sky-600 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors font-medium shadow-sm"
+												>
+													<Copy class="h-4 w-4" />
+													Copy last return
+												</button>
+											</form>
+										{/if}
+										<button
+											type="button"
+											onclick={() => (showAddFlask = !showAddFlask)}
+											class="flex items-center gap-2 px-3 py-1.5 text-sm bg-sky-500 text-gray-800 rounded-md hover:bg-sky-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors font-medium shadow-sm"
+										>
+											<Plus class="h-4 w-4" />
+											Add Flask
+										</button>
+									{/if}
 								</div>
 							{/if}
 						</div>

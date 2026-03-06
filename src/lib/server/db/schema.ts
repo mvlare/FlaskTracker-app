@@ -1,4 +1,4 @@
-import { integer, pgTable, text, timestamp, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import { integer, pgTable, text, timestamp, index, uniqueIndex, doublePrecision, time } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { user } from './auth-schema';
 
@@ -114,6 +114,18 @@ export const boxContentLines = pgTable(
 			.notNull()
 			.references(() => flasks.id),
 		remarks: text('remarks'),
+		sampledAt:                 timestamptz('sampled_at'),
+		sampledLatRaw:             text('sampled_lat_raw'),
+		sampledLonRaw:             text('sampled_lon_raw'),
+		sampledLat:                doublePrecision('sampled_lat'),
+		sampledLon:                doublePrecision('sampled_lon'),
+		sampledInitialPressure:    doublePrecision('sampled_initial_pressure'),
+		sampledLocalStartTime:     time('sampled_local_start_time'),
+		sampledLocalStopFlushTime: time('sampled_local_stop_flush_time'),
+		sampledFinalPressure:      doublePrecision('sampled_final_pressure'),
+		sampledWindSpeedDirection: text('sampled_wind_speed_direction'),
+		sampledShipSpeedDirection: text('sampled_ship_speed_direction'),
+		sampledComments:           text('sampled_comments'),
 		createdAt: timestamptz('created_at').defaultNow(),
 		createdUserId: text('created_user_id').references(() => user.id, { onDelete: 'set null' }),
 		updatedAt: timestamptz('updated_at').defaultNow(),
