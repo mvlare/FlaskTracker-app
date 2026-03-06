@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import { validateRequired } from '$lib/server/utils/validation';
 import { handleDatabaseError } from '$lib/server/utils/error-handling';
 import { updateAuditFields } from '$lib/server/utils/audit';
+import { parseCoordinate } from '$lib/server/utils/coordinates';
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {
 	if (!locals.session) {
@@ -79,13 +80,20 @@ export const actions: Actions = {
 		const sampledInitialPressure = sampledInitialPressureRaw ? parseFloat(sampledInitialPressureRaw) : null;
 		const sampledFinalPressure = sampledFinalPressureRaw ? parseFloat(sampledFinalPressureRaw) : null;
 
+		const latRawTrimmed = sampledLatRaw?.trim() || null;
+		const lonRawTrimmed = sampledLonRaw?.trim() || null;
+		const sampledLat = latRawTrimmed ? parseCoordinate(latRawTrimmed) : null;
+		const sampledLon = lonRawTrimmed ? parseCoordinate(lonRawTrimmed) : null;
+
 		try {
 			await db
 				.update(boxContentLines)
 				.set({
 					sampledAt,
-					sampledLatRaw: sampledLatRaw?.trim() || null,
-					sampledLonRaw: sampledLonRaw?.trim() || null,
+					sampledLatRaw: latRawTrimmed,
+					sampledLonRaw: lonRawTrimmed,
+					sampledLat,
+					sampledLon,
 					sampledInitialPressure: isNaN(sampledInitialPressure!) ? null : sampledInitialPressure,
 					sampledLocalStartTime: sampledLocalStartTime?.trim() || null,
 					sampledLocalStopFlushTime: sampledLocalStopFlushTime?.trim() || null,

@@ -70,6 +70,10 @@
 		editingLineId = null;
 	}
 
+	function copyToClipboard(value: string) {
+		navigator.clipboard.writeText(value);
+	}
+
 	function handleBack() {
 		goto(data.boxId ? `/box-content?boxId=${data.boxId}` : '/box-content');
 	}
@@ -354,14 +358,40 @@
 									</td>
 									<td class="py-1 px-2 text-gray-700">
 										{#if line.sampledLatRaw}
-											{line.sampledLatRaw}
+											<div class="relative group inline-block">
+												<span>{line.sampledLatRaw}</span>
+												{#if line.sampledLat != null}
+													<div class="absolute left-0 top-full z-20 hidden group-hover:block pt-1"><div class="flex items-center gap-1 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap shadow-lg">
+														{line.sampledLat.toFixed(4)}°
+														<button
+															type="button"
+															onclick={() => copyToClipboard(String(line.sampledLat))}
+															class="ml-1 hover:text-sky-300 transition-colors"
+															title="Copy"
+														>⏘</button>
+													</div></div>
+												{/if}
+											</div>
 										{:else}
 											<span class="text-gray-400">—</span>
 										{/if}
 									</td>
 									<td class="py-1 px-2 text-gray-700">
 										{#if line.sampledLonRaw}
-											{line.sampledLonRaw}
+											<div class="relative group inline-block">
+												<span>{line.sampledLonRaw}</span>
+												{#if line.sampledLon != null}
+													<div class="absolute left-0 top-full z-20 hidden group-hover:block pt-1"><div class="flex items-center gap-1 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap shadow-lg">
+														{line.sampledLon.toFixed(4)}°
+														<button
+															type="button"
+															onclick={() => copyToClipboard(String(line.sampledLon))}
+															class="ml-1 hover:text-sky-300 transition-colors"
+															title="Copy"
+														>⏘</button>
+													</div></div>
+												{/if}
+											</div>
 										{:else}
 											<span class="text-gray-400">—</span>
 										{/if}
