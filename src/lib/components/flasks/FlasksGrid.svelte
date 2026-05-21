@@ -145,7 +145,7 @@
 						{/if}
 					</button>
 				</th>
-				<th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+				<th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-52">
 					<button
 						onclick={() => handleSort('flask')}
 						class="flex items-center gap-1 transition-colors {sortBy === 'flask' ? 'text-blue-600' : 'hover:text-gray-900'}"
@@ -160,7 +160,10 @@
 						{/if}
 					</button>
 				</th>
-				<th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+				<th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 tracking-wider w-32">
+					Broken Date
+				</th>
+				<th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-52">
 					<button
 						onclick={() => handleSort('box')}
 						class="flex items-center gap-1 transition-colors {sortBy === 'box' ? 'text-blue-600' : 'hover:text-gray-900'}"
@@ -174,9 +177,6 @@
 							<ArrowDown class="h-4 w-4 text-blue-600" />
 						{/if}
 					</button>
-				</th>
-				<th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 tracking-wider w-32">
-					Broken Date
 				</th>
 			</tr>
 		</thead>
@@ -199,14 +199,14 @@
 						<td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
 							{flask.id}
 						</td>
-						<td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+						<td class="px-4 py-2 text-sm font-medium text-gray-900 w-52 max-w-[13rem] truncate">
 							{flask.name}
-						</td>
-						<td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
-							{flask.boxName || '-'}
 						</td>
 						<td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700 w-32">
 							{formatDateDisplay(flask.brokenAt) || '-'}
+						</td>
+						<td class="px-4 py-2 text-sm text-gray-700 w-52 max-w-[13rem] truncate">
+							{flask.boxName || '-'}
 						</td>
 					</tr>
 				{/each}
