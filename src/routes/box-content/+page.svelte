@@ -22,14 +22,17 @@
 
 	// Box selection state
 	let boxSearchQuery = $state('');
-	let allBoxes = $state<Array<{ id: number; name: string }>>([]);
+	let allBoxes = $state<Array<{ id: number; name: string; pickedUpAt: string | null }>>([]);
+	let filterNotPickedUp = $state(false);
 	let isLoadingBoxes = $state(true);
 	let isPickerOpen = $state(false);
 	let pickerContainerRef: HTMLDivElement | undefined = $state();
 
-	// Filtered boxes based on search query
+	// Filtered boxes based on search query and not-picked-up toggle
 	let filteredBoxes = $derived(
-		allBoxes.filter((box) => box.name.toLowerCase().includes(boxSearchQuery.toLowerCase()))
+		allBoxes
+			.filter((box) => box.name.toLowerCase().includes(boxSearchQuery.toLowerCase()))
+			.filter((box) => !filterNotPickedUp || box.pickedUpAt === null)
 	);
 
 	// Bold field when the typed text matches the currently selected box
@@ -86,6 +89,7 @@
 	let viewRemarksText = $state('');
 
 	let readyAtValue = $state('');
+	let pickedUpAtValue = $state('');
 	let returnedAtValue = $state('');
 
 	// Load all boxes on mount
@@ -130,6 +134,9 @@
 		flaskLineEditExpanded = false;
 		readyAtValue = data.openShipment?.readyAt
 			? data.openShipment.readyAt.toISOString().split('T')[0]
+			: '';
+		pickedUpAtValue = data.openShipment?.pickedUpAt
+			? data.openShipment.pickedUpAt.toISOString().split('T')[0]
 			: '';
 		returnedAtValue = data.openShipment?.returnedAt
 			? data.openShipment.returnedAt.toISOString().split('T')[0]
@@ -225,9 +232,9 @@
 			<!-- LEFT column: Box search (always) + Shipments panel (when box selected) -->
 			<div class="col-span-1 lg:col-span-2 flex flex-col gap-2">
 				<!-- Box search (always visible) -->
-				<div class="bg-white rounded-lg shadow border border-gray-200">
+				<div class="bg-white rounded-lg shadow border border-gray-200" bind:this={pickerContainerRef}>
 					<div class="p-3 {isPickerOpen ? 'border-b border-gray-200' : ''}">
-						<div class="relative" bind:this={pickerContainerRef}>
+						<div class="relative">
 							<Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
 							<input
 								id="boxSearch"
@@ -274,6 +281,16 @@
 					</div>
 
 					{#if isPickerOpen}
+						<div class="px-3 py-2 border-b border-gray-100 bg-gray-50">
+							<label class="flex items-center gap-2 text-xs text-gray-600 cursor-pointer select-none">
+								<input
+									type="checkbox"
+									bind:checked={filterNotPickedUp}
+									class="rounded border-gray-300 text-sky-500 focus:ring-sky-500"
+								/>
+								Not picked up yet
+							</label>
+						</div>
 						<div class="max-h-48 overflow-y-auto">
 							{#if filteredBoxes.length > 0}
 								{#each filteredBoxes as box}
@@ -282,7 +299,12 @@
 										onclick={() => handleBoxSelect(box.id, box.name)}
 										class="w-full text-left px-4 py-2 text-sm hover:bg-sky-50 transition-colors border-b border-gray-100 last:border-b-0"
 									>
-										{box.name}
+										<span class="font-medium">{box.name}</span>
+										{#if box.pickedUpAt}
+											<span class="text-xs text-gray-500 ml-1">· Picked up: {formatDateDisplay(box.pickedUpAt)}</span>
+										{:else}
+											<span class="text-xs text-amber-600 ml-1">· Not picked up</span>
+										{/if}
 									</button>
 								{/each}
 							{:else}
@@ -389,6 +411,29 @@
 											type="button"
 											tabindex="-1"
 											onclick={() => (readyAtValue = formatForSubmission(new Date()))}
+											disabled={isSubmitting}
+											title="Set to today"
+											class="text-gray-400 hover:text-sky-600 disabled:text-gray-300 transition-colors flex-shrink-0"
+										>
+											<Check class="h-4 w-4" />
+										</button>
+									</div>
+
+									<div class="flex items-center gap-2">
+										<div class="flex-1">
+											<FloatingLabelDatePicker
+												id="pickedUpAt"
+												name="pickedUpAt"
+												label="Picked up"
+												bind:value={pickedUpAtValue}
+												disabled={isSubmitting}
+												placeholder="dd-mm-yyyy"
+											/>
+										</div>
+										<button
+											type="button"
+											tabindex="-1"
+											onclick={() => (pickedUpAtValue = formatForSubmission(new Date()))}
 											disabled={isSubmitting}
 											title="Set to today"
 											class="text-gray-400 hover:text-sky-600 disabled:text-gray-300 transition-colors flex-shrink-0"
@@ -548,6 +593,22 @@
 													class="absolute left-3 top-2 text-xs text-gray-600 bg-white px-1 pointer-events-none select-none"
 												>
 													Ready
+												</label>
+											</div>
+
+											<div class="relative">
+												<input
+													id="selectedPickedUpAt"
+													type="text"
+													readonly
+													value={selected.pickedUpAt ? formatDateDisplay(selected.pickedUpAt) : ''}
+													class="w-full px-4 py-2 pt-6 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all"
+												/>
+												<label
+													for="selectedPickedUpAt"
+													class="absolute left-3 top-2 text-xs text-gray-600 bg-white px-1 pointer-events-none select-none"
+												>
+													Picked up
 												</label>
 											</div>
 

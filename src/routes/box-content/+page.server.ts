@@ -101,6 +101,7 @@ export const actions: Actions = {
 		const boxId = formData.get('boxId') as string;
 		const destinationText = formData.get('destinationText') as string;
 		const readyAtRaw = formData.get('readyAt');
+		const pickedUpAtRaw = formData.get('pickedUpAt');
 		const returnedAtRaw = formData.get('returnedAt');
 		const remarksRaw = formData.get('remarks');
 
@@ -115,6 +116,7 @@ export const actions: Actions = {
 				boxId: parseInt(boxId),
 				destinationText: destinationText?.trim() || null,
 				readyAt: parseDateToUTC(readyAtRaw ? String(readyAtRaw) : null),
+				pickedUpAt: parseDateToUTC(pickedUpAtRaw ? String(pickedUpAtRaw) : null),
 				returnedAt: parseDateToUTC(returnedAtRaw ? String(returnedAtRaw) : null),
 				remarks: processRemarks(remarksRaw),
 				...createAuditFields(locals.user.id)
@@ -138,6 +140,7 @@ export const actions: Actions = {
 		const headerId = formData.get('headerId') as string;
 		const destinationText = formData.get('destinationText') as string;
 		const readyAtRaw = formData.get('readyAt');
+		const pickedUpAtRaw = formData.get('pickedUpAt');
 		const returnedAtRaw = formData.get('returnedAt');
 		const remarksRaw = formData.get('remarks');
 
@@ -148,6 +151,7 @@ export const actions: Actions = {
 		}
 
 		const readyAt = parseDateToUTC(readyAtRaw ? String(readyAtRaw) : null);
+		const pickedUpAt = parseDateToUTC(pickedUpAtRaw ? String(pickedUpAtRaw) : null);
 		const returnedAt = parseDateToUTC(returnedAtRaw ? String(returnedAtRaw) : null);
 
 		// Validate: readyAt cannot be before the most recent returnedAt of a closed shipment
@@ -181,6 +185,7 @@ export const actions: Actions = {
 				.set({
 					destinationText: destinationText?.trim() || null,
 					readyAt,
+					pickedUpAt,
 					returnedAt,
 					remarks: processRemarks(remarksRaw),
 					...updateAuditFields(locals.user.id)
@@ -308,6 +313,7 @@ export const actions: Actions = {
 		if (!locals.session || !locals.user) {
 			return fail(401, { error: 'Unauthorized' });
 		}
+		const userId = locals.user.id;
 
 		const formData = await request.formData();
 		const headerId = formData.get('headerId') as string;
@@ -354,7 +360,7 @@ export const actions: Actions = {
 					boxContentHeaderId: parseInt(headerId),
 					flaskId: l.flaskId,
 					remarks: l.remarks,
-					...createAuditFields(locals.user.id)
+					...createAuditFields(userId)
 				}));
 
 			if (linesToInsert.length > 0) {

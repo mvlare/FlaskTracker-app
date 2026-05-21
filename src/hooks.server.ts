@@ -1,5 +1,6 @@
 import { auth } from "$lib/server/auth";
 import { svelteKitHandler } from "better-auth/svelte-kit";
+import { building } from "$app/environment";
 import { db } from "$lib/server/db";
 import { user } from "$lib/server/db/auth-schema";
 import { eq } from "drizzle-orm";
@@ -28,5 +29,5 @@ export const handle: Handle = async ({ event, resolve }) => {
 		event.locals.isAdmin = false;
 	}
 
-	return svelteKitHandler({ event, resolve, auth });
+	return svelteKitHandler({ event, resolve, auth, building });
 };

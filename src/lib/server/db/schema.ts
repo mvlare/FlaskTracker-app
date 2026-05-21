@@ -93,6 +93,7 @@ export const boxContentHeaders = pgTable('box_content_headers', {
 		.references(() => boxes.id),
 	destinationText: text('destination_text'),
 	readyAt: timestamptz('ready_at'),
+	pickedUpAt: timestamptz('picked_up_at'),
 	returnedAt: timestamptz('returned_at'),
 	remarks: text('remarks'),
 	createdAt: timestamptz('created_at').defaultNow(),
