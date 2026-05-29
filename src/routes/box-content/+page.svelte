@@ -3,12 +3,21 @@
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
 	import { onMount } from 'svelte';
-	import { ArrowLeft, Plus, Save, Edit, Trash2, X, List, Search, Copy, Clipboard, Pencil, ArrowUpAZ, Maximize2, Minimize2, Check, Wind } from 'lucide-svelte';
+	import { ArrowLeft, Plus, Save, Edit, Trash2, X, List, Search, Copy, Clipboard, Pencil, ArrowUpAZ, ArrowDownAZ, Maximize2, Minimize2, Check, Wind } from 'lucide-svelte';
 	import FloatingLabelInput from '$lib/components/form/FloatingLabelInput.svelte';
 	import FloatingLabelDatePicker from '$lib/components/form/FloatingLabelDatePicker.svelte';
 	import { formatDateDisplay, formatForSubmission } from '$lib/utils/dates';
 
 	let { data, form } = $props();
+
+	// Flask table sort
+	let flaskSortOrder = $state<'asc' | 'desc'>('desc');
+	let sortedLines = $derived(
+		[...data.focusedShipmentLines].sort((a, b) => {
+			const cmp = a.flask.name.localeCompare(b.flask.name);
+			return flaskSortOrder === 'asc' ? cmp : -cmp;
+		})
+	);
 
 	// Capture the flask to restore on the landing page (set once on mount, unaffected by internal navigation)
 	let returnFlaskId: string | null = null;
@@ -841,10 +850,18 @@
 												ID
 											</th>
 											<th class="w-32 px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-												<span class="inline-flex items-center gap-1">
+												<button
+													type="button"
+													onclick={() => (flaskSortOrder = flaskSortOrder === 'asc' ? 'desc' : 'asc')}
+													class="inline-flex items-center gap-1 hover:text-sky-600 transition-colors cursor-pointer"
+												>
 													Name
-													<ArrowUpAZ class="h-3.5 w-3.5 text-sky-500" />
-												</span>
+													{#if flaskSortOrder === 'asc'}
+														<ArrowUpAZ class="h-3.5 w-3.5 text-sky-500" />
+													{:else}
+														<ArrowDownAZ class="h-3.5 w-3.5 text-sky-500" />
+													{/if}
+												</button>
 											</th>
 											<th class="w-48 px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">
 												Remarks
@@ -859,7 +876,7 @@
 										</tr>
 									</thead>
 									<tbody class="bg-white divide-y divide-gray-200">
-										{#each data.focusedShipmentLines as line}
+										{#each sortedLines as line}
 											<tr class="align-top">
 												<td class="px-2 py-2 text-gray-900">
 													{line.flask.id}

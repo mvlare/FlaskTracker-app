@@ -78,8 +78,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			}
 		});
 
-		// Sort by flask name
-		focusedShipmentLines = linesData.sort((a, b) => a.flask.name.localeCompare(b.flask.name));
+		focusedShipmentLines = linesData;
 	}
 
 	return {
