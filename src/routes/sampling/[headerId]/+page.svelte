@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { enhance } from '$app/forms';
-	import { ArrowLeft, Pencil, Save, X } from 'lucide-svelte';
+	import { tick } from 'svelte';
+	import { ArrowLeft, Pencil, Save, X, Clipboard } from 'lucide-svelte';
 	import { formatDateDisplay } from '$lib/utils/dates';
 
 	let { data, form } = $props();
@@ -31,6 +32,7 @@
 	);
 
 	let editingLineId = $state<number | null>(null);
+	let clearConfirmId = $state<number | null>(null);
 	let editForm = $state<EditFormState>({
 		sampledAtDate: '',
 		sampledAtTime: '',
@@ -80,6 +82,112 @@
 
 	const inputClass =
 		'w-full px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-sky-500';
+
+	// ── Paste from spreadsheet ──────────────────────────────────────────────
+	interface PasteRow {
+		flaskName: string;
+		lineId: number | null;
+		sampledAtDate: string;
+		sampledAtTime: string;
+		sampledLatRaw: string;
+		sampledLonRaw: string;
+		sampledInitialPressure: string;
+		sampledLocalStartTime: string;
+		sampledLocalStopFlushTime: string;
+		sampledFinalPressure: string;
+		sampledWindSpeedDirection: string;
+		sampledShipSpeedDirection: string;
+		sampledComments: string;
+	}
+
+	let showPaste = $state(false);
+	let pasteRows = $state<PasteRow[]>([]);
+	let pasteError = $state('');
+	let isImporting = $state(false);
+	let pasteRowsJson = $state('');
+	let pasteFormEl: HTMLFormElement | undefined = $state();
+
+	const flaskIndex = $derived(new Map(data.lines.map((l) => [l.flask.name.toLowerCase(), l.id])));
+	const matchedCount = $derived(pasteRows.filter((r) => r.lineId !== null).length);
+
+	function parseDateToISO(raw: string): string {
+		const s = raw?.trim();
+		if (!s) return '';
+		if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+		const dmy = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})$/);
+		if (dmy) {
+			const year = dmy[3].length === 2 ? `20${dmy[3]}` : dmy[3];
+			return `${year}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
+		}
+		const months: Record<string, string> = {
+			jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',
+			jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'
+		};
+		const dmy2 = s.match(/^(\d{1,2})[\s\-]([A-Za-z]{3})[\s\-\/](\d{2,4})/);
+		if (dmy2) {
+			const m = months[dmy2[2].toLowerCase()];
+			if (m) {
+				const year = dmy2[3].length === 2 ? `20${dmy2[3]}` : dmy2[3];
+				return `${year}-${m}-${dmy2[1].padStart(2, '0')}`;
+			}
+		}
+		return '';
+	}
+
+	function parseTimeToHHMM(raw: string): string {
+		const s = raw?.trim();
+		if (!s) return '';
+		if (/^\d{2}:\d{2}$/.test(s)) return s;
+		if (/^\d{4}$/.test(s)) return `${s.slice(0, 2)}:${s.slice(2)}`;
+		const hm = s.match(/^(\d{1,2}):(\d{2})/);
+		if (hm) return `${hm[1].padStart(2, '0')}:${hm[2]}`;
+		return s;
+	}
+
+	function parsePasteText(text: string): PasteRow[] {
+		const rows: PasteRow[] = [];
+		for (const line of text.trim().split('\n')) {
+			const cols = line.split('\t').map((c) => c.trim());
+			const flaskName = cols[0] ?? '';
+			if (!flaskName) continue;
+			// skip header rows
+			if (/flask|id|name/i.test(flaskName) && !flaskName.includes('-')) continue;
+			rows.push({
+				flaskName,
+				lineId: flaskIndex.get(flaskName.toLowerCase()) ?? null,
+				sampledAtDate: parseDateToISO(cols[1] ?? ''),
+				sampledAtTime: parseTimeToHHMM(cols[2] ?? ''),
+				sampledLatRaw: cols[3] ?? '',
+				sampledLonRaw: cols[4] ?? '',
+				sampledInitialPressure: cols[5] ?? '',
+				sampledLocalStartTime: parseTimeToHHMM(cols[6] ?? ''),
+				sampledLocalStopFlushTime: parseTimeToHHMM(cols[7] ?? ''),
+				sampledFinalPressure: cols[8] ?? '',
+				sampledWindSpeedDirection: cols[9] ?? '',
+				sampledShipSpeedDirection: cols[10] ?? '',
+				sampledComments: cols[11] ?? ''
+			});
+		}
+		return rows;
+	}
+
+	async function readClipboard() {
+		pasteError = '';
+		try {
+			const text = await navigator.clipboard.readText();
+			if (!text.trim()) { pasteError = 'Clipboard is empty.'; return; }
+			pasteRows = parsePasteText(text);
+			if (pasteRows.length === 0) pasteError = 'No rows recognised. Check column order.';
+		} catch {
+			pasteError = 'Clipboard access denied. Paste text manually below.';
+		}
+	}
+
+	async function confirmImport() {
+		pasteRowsJson = JSON.stringify(pasteRows.filter((r) => r.lineId !== null));
+		await tick();
+		pasteFormEl?.requestSubmit();
+	}
 </script>
 
 <div class="min-h-screen bg-gray-50">
@@ -114,11 +222,123 @@
 				<span class="font-semibold">Returned:</span>
 				{data.header.returnedAt ? formatDateDisplay(data.header.returnedAt) : '—'}
 			</span>
+			<span class="text-gray-300">|</span>
+			<button
+				type="button"
+				onclick={() => { showPaste = !showPaste; pasteRows = []; pasteError = ''; }}
+				class="flex items-center gap-1 text-sm text-sky-600 hover:text-sky-800 transition-colors"
+			>
+				<Clipboard class="h-4 w-4" />
+				Paste clipboard spreadsheet
+			</button>
 		</div>
+
+		<!-- Paste panel -->
+		{#if showPaste}
+			<div class="mb-4 p-3 bg-sky-50 border border-sky-200 rounded-lg text-sm">
+				<div class="flex items-center justify-between mb-2">
+					<p class="text-xs text-gray-600">
+						Copy rows from your spreadsheet (Gemini output), then click Read clipboard.<br/>
+						Expected column order: <span class="font-mono">Flask ID · Date · Time UTC · Lat · Lon · Init.pressure · Start LT · Stop LT · Final pressure · Wind · Ship · Comment</span>
+					</p>
+					<button type="button" onclick={() => { showPaste = false; pasteRows = []; }}
+						class="ml-3 text-gray-400 hover:text-gray-600"><X class="h-4 w-4" /></button>
+				</div>
+
+				<button
+					type="button"
+					onclick={readClipboard}
+					class="flex items-center gap-1 px-3 py-1.5 text-xs bg-sky-600 text-white rounded hover:bg-sky-700 transition-colors"
+				>
+					<Clipboard class="h-3.5 w-3.5" />
+					Read clipboard
+				</button>
+
+				{#if pasteError}
+					<p class="mt-2 text-xs text-red-600">{pasteError}</p>
+				{/if}
+
+				{#if pasteRows.length > 0}
+					<div class="mt-3">
+						<p class="text-xs text-gray-600 mb-1">
+							{matchedCount} of {pasteRows.length} row(s) matched to flasks in this shipment.
+							{#if pasteRows.length - matchedCount > 0}
+								<span class="text-amber-600">{pasteRows.length - matchedCount} not found (will be skipped).</span>
+							{/if}
+						</p>
+						<div class="overflow-x-auto max-h-48 border border-gray-200 rounded bg-white">
+							<table class="w-full text-xs">
+								<thead class="bg-gray-50 sticky top-0">
+									<tr>
+										<th class="px-2 py-1 text-left font-medium text-gray-600">Flask</th>
+										<th class="px-2 py-1 text-left font-medium text-gray-600">Date</th>
+										<th class="px-2 py-1 text-left font-medium text-gray-600">Time UTC</th>
+										<th class="px-2 py-1 text-left font-medium text-gray-600">Lat</th>
+										<th class="px-2 py-1 text-left font-medium text-gray-600">Lon</th>
+									</tr>
+								</thead>
+								<tbody>
+									{#each pasteRows as row}
+										<tr class={row.lineId !== null ? 'bg-green-50' : 'bg-amber-50'}>
+											<td class="px-2 py-0.5 font-medium {row.lineId !== null ? 'text-green-800' : 'text-amber-700'}">
+												{row.flaskName}
+											</td>
+											<td class="px-2 py-0.5 text-gray-700">{row.sampledAtDate || '—'}</td>
+											<td class="px-2 py-0.5 text-gray-700">{row.sampledAtTime || '—'}</td>
+											<td class="px-2 py-0.5 text-gray-700">{row.sampledLatRaw || '—'}</td>
+											<td class="px-2 py-0.5 text-gray-700">{row.sampledLonRaw || '—'}</td>
+										</tr>
+									{/each}
+								</tbody>
+							</table>
+						</div>
+
+						{#if matchedCount > 0}
+							<button
+								type="button"
+								onclick={confirmImport}
+								disabled={isImporting}
+								class="mt-2 flex items-center gap-1 px-3 py-1.5 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 transition-colors"
+							>
+								<Save class="h-3.5 w-3.5" />
+								{isImporting ? 'Importing…' : `Import ${matchedCount} row(s)`}
+							</button>
+						{/if}
+					</div>
+				{/if}
+			</div>
+
+			<!-- Hidden form for paste import -->
+			<form
+				bind:this={pasteFormEl}
+				method="POST"
+				action="?/pasteImport"
+				class="hidden"
+				use:enhance={() => {
+					isImporting = true;
+					return async ({ result, update }) => {
+						isImporting = false;
+						if (result.type === 'success') {
+							showPaste = false;
+							pasteRows = [];
+							await invalidateAll();
+						}
+						await update();
+					};
+				}}
+			>
+				<input type="hidden" name="rows" bind:value={pasteRowsJson} />
+			</form>
+		{/if}
 
 		{#if form?.error}
 			<div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
 				{form.error}
+			</div>
+		{/if}
+		{#if form?.pasteImported}
+			<div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-md text-sm text-green-700">
+				{form.pasteImported} row(s) imported successfully.
 			</div>
 		{/if}
 
@@ -455,14 +675,48 @@
 										{/if}
 									</td>
 									<td class="py-1 px-2">
-										<button
-											type="button"
-											onclick={() => startEdit(line)}
-											class="flex items-center gap-1 px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-										>
-											<Pencil class="h-3 w-3" />
-											Edit
-										</button>
+										{#if clearConfirmId === line.id}
+											<div class="flex items-center gap-1 flex-wrap">
+												<span class="text-xs text-gray-700">Clear sampling data?</span>
+												<form method="POST" action="?/clearLine" use:enhance={() => {
+													return async ({ update }) => {
+														clearConfirmId = null;
+														await update();
+													};
+												}}>
+													<input type="hidden" name="lineId" value={line.id} />
+													<button type="submit" class="px-2 py-0.5 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors">
+														Yes
+													</button>
+												</form>
+												<button
+													type="button"
+													onclick={() => (clearConfirmId = null)}
+													class="px-2 py-0.5 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+												>
+													No
+												</button>
+											</div>
+										{:else}
+											<div class="flex gap-1">
+												<button
+													type="button"
+													onclick={() => startEdit(line)}
+													class="flex items-center gap-1 px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+												>
+													<Pencil class="h-3 w-3" />
+													Edit
+												</button>
+												<button
+													type="button"
+													onclick={() => (clearConfirmId = line.id)}
+													class="flex items-center gap-1 px-2 py-0.5 text-xs bg-gray-100 text-gray-500 rounded hover:bg-red-50 hover:text-red-600 transition-colors"
+												>
+													<X class="h-3 w-3" />
+													Clear
+												</button>
+											</div>
+										{/if}
 									</td>
 								</tr>
 							{/if}

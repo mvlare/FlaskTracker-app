@@ -43,6 +43,109 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 };
 
 export const actions: Actions = {
+	pasteImport: async ({ request, locals }) => {
+		if (!locals.session || !locals.user) {
+			return fail(401, { error: 'Unauthorized' });
+		}
+
+		const formData = await request.formData();
+		const rowsJson = formData.get('rows') as string;
+		if (!rowsJson) return fail(400, { error: 'No paste data provided' });
+
+		let rows: Array<{
+			lineId: number;
+			sampledAtDate: string;
+			sampledAtTime: string;
+			sampledLatRaw: string;
+			sampledLonRaw: string;
+			sampledInitialPressure: string;
+			sampledLocalStartTime: string;
+			sampledLocalStopFlushTime: string;
+			sampledFinalPressure: string;
+			sampledWindSpeedDirection: string;
+			sampledShipSpeedDirection: string;
+			sampledComments: string;
+		}>;
+
+		try {
+			rows = JSON.parse(rowsJson);
+		} catch {
+			return fail(400, { error: 'Invalid paste data format' });
+		}
+
+		let imported = 0;
+		for (const row of rows) {
+			let sampledAt: Date | null = null;
+			if (row.sampledAtDate && row.sampledAtTime) {
+				sampledAt = new Date(`${row.sampledAtDate}T${row.sampledAtTime}:00Z`);
+			} else if (row.sampledAtDate) {
+				sampledAt = new Date(`${row.sampledAtDate}T00:00:00Z`);
+			}
+
+			const sampledInitialPressure = row.sampledInitialPressure ? parseFloat(row.sampledInitialPressure) : null;
+			const sampledFinalPressure = row.sampledFinalPressure ? parseFloat(row.sampledFinalPressure) : null;
+			const latRaw = row.sampledLatRaw?.trim() || null;
+			const lonRaw = row.sampledLonRaw?.trim() || null;
+
+			try {
+				await db.update(boxContentLines).set({
+					sampledAt,
+					sampledLatRaw: latRaw,
+					sampledLonRaw: lonRaw,
+					sampledLat: latRaw ? parseCoordinate(latRaw) : null,
+					sampledLon: lonRaw ? parseCoordinate(lonRaw) : null,
+					sampledInitialPressure: isNaN(sampledInitialPressure!) ? null : sampledInitialPressure,
+					sampledLocalStartTime: row.sampledLocalStartTime?.trim() || null,
+					sampledLocalStopFlushTime: row.sampledLocalStopFlushTime?.trim() || null,
+					sampledFinalPressure: isNaN(sampledFinalPressure!) ? null : sampledFinalPressure,
+					sampledWindSpeedDirection: row.sampledWindSpeedDirection?.trim() || null,
+					sampledShipSpeedDirection: row.sampledShipSpeedDirection?.trim() || null,
+					sampledComments: row.sampledComments?.trim() || null,
+					...updateAuditFields(locals.user.id)
+				}).where(eq(boxContentLines.id, row.lineId));
+				imported++;
+			} catch {
+				// skip failed rows
+			}
+		}
+
+		return { success: true, pasteImported: imported };
+	},
+
+	clearLine: async ({ request, locals }) => {
+		if (!locals.session || !locals.user) {
+			return fail(401, { error: 'Unauthorized' });
+		}
+
+		const formData = await request.formData();
+		const lineIdRaw = formData.get('lineId') as string;
+		const lineId = parseInt(lineIdRaw);
+		if (isNaN(lineId)) return fail(400, { error: 'Invalid line ID' });
+
+		try {
+			await db.update(boxContentLines).set({
+				sampledAt: null,
+				sampledLatRaw: null,
+				sampledLonRaw: null,
+				sampledLat: null,
+				sampledLon: null,
+				sampledInitialPressure: null,
+				sampledLocalStartTime: null,
+				sampledLocalStopFlushTime: null,
+				sampledFinalPressure: null,
+				sampledWindSpeedDirection: null,
+				sampledShipSpeedDirection: null,
+				sampledComments: null,
+				...updateAuditFields(locals.user.id)
+			}).where(eq(boxContentLines.id, lineId));
+
+			return { success: true };
+		} catch (err) {
+			const { status, message } = handleDatabaseError(err, 'sampling data');
+			return fail(status, { error: message });
+		}
+	},
+
 	updateLine: async ({ request, locals }) => {
 		if (!locals.session || !locals.user) {
 			return fail(401, { error: 'Unauthorized' });
