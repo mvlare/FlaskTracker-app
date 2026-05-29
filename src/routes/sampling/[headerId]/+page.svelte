@@ -56,8 +56,8 @@
 			sampledLonRaw: line.sampledLonRaw ?? '',
 			sampledInitialPressure:
 				line.sampledInitialPressure != null ? String(line.sampledInitialPressure) : '',
-			sampledLocalStartTime: line.sampledLocalStartTime ?? '',
-			sampledLocalStopFlushTime: line.sampledLocalStopFlushTime ?? '',
+			sampledLocalStartTime: line.sampledLocalStartTime?.substring(0, 5) ?? '',
+			sampledLocalStopFlushTime: line.sampledLocalStopFlushTime?.substring(0, 5) ?? '',
 			sampledFinalPressure:
 				line.sampledFinalPressure != null ? String(line.sampledFinalPressure) : '',
 			sampledWindSpeedDirection: line.sampledWindSpeedDirection ?? '',
@@ -219,11 +219,14 @@
 													style="min-width:7rem;"
 												/>
 												<input
-													type="time"
+													type="text"
 													name="sampledAtTime"
 													bind:value={editForm.sampledAtTime}
 													class={inputClass}
 													style="min-width:5rem;"
+													placeholder="HH:MM"
+													pattern="[0-2][0-9]:[0-5][0-9]"
+													maxlength="5"
 												/>
 											</div>
 										</form>
@@ -262,21 +265,27 @@
 									<td class="py-1 px-2">
 										<input
 											form="edit-form-{line.id}"
-											type="time"
+											type="text"
 											name="sampledLocalStartTime"
 											bind:value={editForm.sampledLocalStartTime}
 											class={inputClass}
 											style="min-width:5rem;"
+											placeholder="HH:MM"
+											pattern="[0-2][0-9]:[0-5][0-9]"
+											maxlength="5"
 										/>
 									</td>
 									<td class="py-1 px-2">
 										<input
 											form="edit-form-{line.id}"
-											type="time"
+											type="text"
 											name="sampledLocalStopFlushTime"
 											bind:value={editForm.sampledLocalStopFlushTime}
 											class={inputClass}
 											style="min-width:5rem;"
+											placeholder="HH:MM"
+											pattern="[0-2][0-9]:[0-5][0-9]"
+											maxlength="5"
 										/>
 									</td>
 									<td class="py-1 px-2">
