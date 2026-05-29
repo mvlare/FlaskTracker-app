@@ -31,7 +31,11 @@
 	// Filtered boxes based on search query and not-picked-up toggle
 	let filteredBoxes = $derived(
 		allBoxes
-			.filter((box) => box.name.toLowerCase().includes(boxSearchQuery.toLowerCase()))
+			.filter((box) =>
+				box.name.replace(/\s+/g, '').toLowerCase().includes(
+					boxSearchQuery.replace(/\s+/g, '').toLowerCase()
+				)
+			)
 			.filter((box) => !filterNotPickedUp || box.pickedUpAt === null)
 	);
 
@@ -96,8 +100,10 @@
 	$effect(() => {
 		fetch('/api/boxes')
 			.then((res) => res.json())
-			.then((boxes) => {
-				allBoxes = boxes;
+			.then((boxes: typeof allBoxes) => {
+				allBoxes = boxes.sort((a, b) =>
+					a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+				);
 				isLoadingBoxes = false;
 			})
 			.catch((err) => {

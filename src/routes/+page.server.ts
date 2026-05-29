@@ -52,7 +52,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			conditions.push(ilike(flasks.name, `%${flaskSearch}%`));
 		}
 		if (boxSearch) {
-			conditions.push(sql`${boxNameSubquery} ILIKE ${`%${boxSearch}%`}`);
+			conditions.push(sql`${boxNameSubquery} ILIKE ${boxSearch}`);
 		}
 
 		if (conditions.length > 0) {

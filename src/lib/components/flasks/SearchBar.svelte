@@ -17,7 +17,11 @@
 
 	let filteredBoxes = $derived(
 		boxSearchInput.trim()
-			? allBoxes.filter((b) => b.name.toLowerCase().includes(boxSearchInput.toLowerCase()))
+			? allBoxes.filter((b) =>
+					b.name.replace(/\s+/g, '').toLowerCase().includes(
+						boxSearchInput.replace(/\s+/g, '').toLowerCase()
+					)
+				)
 			: allBoxes
 	);
 
@@ -79,8 +83,10 @@
 	onMount(() => {
 		fetch('/api/boxes?order=asc')
 			.then((r) => r.json())
-			.then((data) => {
-				allBoxes = data;
+			.then((data: Array<{ id: number; name: string }>) => {
+				allBoxes = data.sort((a, b) =>
+					a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+				);
 			});
 
 		function handleClickOutside(e: MouseEvent) {

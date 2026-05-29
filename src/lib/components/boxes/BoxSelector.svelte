@@ -16,7 +16,11 @@
 	let error = $state('');
 
 	let filteredBoxes = $derived(
-		boxes.filter((box) => box.name.toLowerCase().includes(filterText.toLowerCase()))
+		boxes.filter((box) =>
+			box.name.replace(/\s+/g, '').toLowerCase().includes(
+				filterText.replace(/\s+/g, '').toLowerCase()
+			)
+		)
 	);
 
 	// Load boxes from server
@@ -26,7 +30,10 @@
 			if (!response.ok) {
 				throw new Error('Failed to load boxes');
 			}
-			boxes = await response.json();
+			const data: Array<{ id: number; name: string }> = await response.json();
+			boxes = data.sort((a, b) =>
+				a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+			);
 		} catch (err) {
 			console.error('Error loading boxes:', err);
 			error = 'Failed to load boxes. Please try again.';
