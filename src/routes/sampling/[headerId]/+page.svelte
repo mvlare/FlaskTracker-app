@@ -100,6 +100,15 @@
 		sampledComments: string;
 	}
 
+	const geminiPrompt = 'Put data from the picture into csv text with tab as a separator, ready to copy.';
+	let promptCopied = $state(false);
+	async function copyGeminiPrompt() {
+		await navigator.clipboard.writeText(geminiPrompt);
+		promptCopied = true;
+		setTimeout(() => { promptCopied = false; }, 2000);
+	}
+
+	let clearAllConfirm = $state(false);
 	let showPaste = $state(false);
 	let pasteRows = $state<PasteRow[]>([]);
 	let pasteError = $state('');
@@ -193,7 +202,7 @@
 <div class="min-h-screen bg-gray-50">
 	<div class="max-w-full mx-auto px-4 py-4">
 		<!-- Header -->
-		<div class="flex items-center gap-3 mb-4 flex-wrap">
+		<div class="flex items-center gap-3 mb-1 flex-wrap">
 			<button
 				type="button"
 				onclick={handleBack}
@@ -222,14 +231,32 @@
 				<span class="font-semibold">Returned:</span>
 				{data.header.returnedAt ? formatDateDisplay(data.header.returnedAt) : '—'}
 			</span>
-			<span class="text-gray-300">|</span>
+		</div>
+		<div class="inline-flex items-center gap-3 mb-4 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg flex-wrap">
+			<a
+				href="https://gemini.google.com"
+				target="_blank"
+				rel="noopener noreferrer"
+				class="flex items-center gap-1 text-sm text-violet-600 hover:text-violet-800 transition-colors"
+			>
+				✦ Gemini
+			</a>
+			<button
+				type="button"
+				onclick={copyGeminiPrompt}
+				class="text-xs text-gray-600 hover:text-gray-900 bg-white border border-gray-200 hover:bg-gray-100 px-2 py-0.5 rounded transition-colors"
+				title="Click to copy prompt"
+			>
+				{promptCopied ? '✓ Copied!' : 'copy prompt'}
+			</button>
+			<span class="text-gray-400">→</span>
 			<button
 				type="button"
 				onclick={() => { showPaste = !showPaste; pasteRows = []; pasteError = ''; }}
 				class="flex items-center gap-1 text-sm text-sky-600 hover:text-sky-800 transition-colors"
 			>
 				<Clipboard class="h-4 w-4" />
-				Paste clipboard spreadsheet
+				Paste clipboard
 			</button>
 		</div>
 
@@ -730,6 +757,39 @@
 						{/if}
 					</tbody>
 				</table>
+			</div>
+			<div class="flex justify-end mt-2 pr-2">
+				{#if clearAllConfirm}
+					<div class="flex items-center gap-1">
+						<span class="text-xs text-gray-700">Clear all sampling data?</span>
+						<form method="POST" action="?/clearAll" use:enhance={() => {
+							return async ({ update }) => {
+								clearAllConfirm = false;
+								await update();
+							};
+						}}>
+							<button type="submit" class="px-2 py-0.5 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors">
+								Yes
+							</button>
+						</form>
+						<button
+							type="button"
+							onclick={() => (clearAllConfirm = false)}
+							class="px-2 py-0.5 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+						>
+							No
+						</button>
+					</div>
+				{:else}
+					<button
+						type="button"
+						onclick={() => (clearAllConfirm = true)}
+						class="flex items-center gap-1 px-2 py-0.5 text-xs bg-gray-100 text-gray-500 rounded hover:bg-red-50 hover:text-red-600 transition-colors"
+					>
+						<X class="h-3 w-3" />
+						Clear all
+					</button>
+				{/if}
 			</div>
 		</div>
 	</div>

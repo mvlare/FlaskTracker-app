@@ -112,6 +112,38 @@ export const actions: Actions = {
 		return { success: true, pasteImported: imported };
 	},
 
+	clearAll: async ({ params, locals }) => {
+		if (!locals.session || !locals.user) {
+			return fail(401, { error: 'Unauthorized' });
+		}
+
+		const headerId = parseInt(params.headerId);
+		if (isNaN(headerId)) return fail(400, { error: 'Invalid shipment ID' });
+
+		try {
+			await db.update(boxContentLines).set({
+				sampledAt: null,
+				sampledLatRaw: null,
+				sampledLonRaw: null,
+				sampledLat: null,
+				sampledLon: null,
+				sampledInitialPressure: null,
+				sampledLocalStartTime: null,
+				sampledLocalStopFlushTime: null,
+				sampledFinalPressure: null,
+				sampledWindSpeedDirection: null,
+				sampledShipSpeedDirection: null,
+				sampledComments: null,
+				...updateAuditFields(locals.user.id)
+			}).where(eq(boxContentLines.boxContentHeaderId, headerId));
+
+			return { success: true };
+		} catch (err) {
+			const { status, message } = handleDatabaseError(err, 'sampling data');
+			return fail(status, { error: message });
+		}
+	},
+
 	clearLine: async ({ request, locals }) => {
 		if (!locals.session || !locals.user) {
 			return fail(401, { error: 'Unauthorized' });
