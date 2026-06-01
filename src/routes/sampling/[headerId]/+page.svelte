@@ -228,19 +228,19 @@
 			</span>
 			<span class="text-gray-300">|</span>
 			<span class="text-sm text-gray-700">
+				<span class="font-semibold">Picked up:</span>
+				{data.header.pickedUpAt ? formatDateDisplay(data.header.pickedUpAt) : '—'}
+			</span>
+			<span class="text-gray-300">|</span>
+			<span class="text-sm text-gray-700">
 				<span class="font-semibold">Returned:</span>
 				{data.header.returnedAt ? formatDateDisplay(data.header.returnedAt) : '—'}
 			</span>
 		</div>
-		<div class="inline-flex items-center gap-3 mb-4 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg flex-wrap">
-			<a
-				href="https://gemini.google.com"
-				target="_blank"
-				rel="noopener noreferrer"
-				class="flex items-center gap-1 text-sm text-violet-600 hover:text-violet-800 transition-colors"
-			>
-				✦ Gemini
-			</a>
+		<div class="inline-flex items-center gap-2 mb-4 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg flex-wrap">
+			<span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Import</span>
+			<span class="text-gray-300">|</span>
+			<span class="text-xs text-gray-400">1)</span>
 			<button
 				type="button"
 				onclick={copyGeminiPrompt}
@@ -249,7 +249,16 @@
 			>
 				{promptCopied ? '✓ Copied!' : 'copy prompt'}
 			</button>
-			<span class="text-gray-400">→</span>
+			<span class="text-xs text-gray-400">2)</span>
+			<a
+				href="https://gemini.google.com"
+				target="_blank"
+				rel="noopener noreferrer"
+				class="flex items-center gap-1 text-sm text-violet-600 hover:text-violet-800 transition-colors"
+			>
+				✦ Gemini
+			</a>
+			<span class="text-xs text-gray-400">3)</span>
 			<button
 				type="button"
 				onclick={() => { showPaste = !showPaste; pasteRows = []; pasteError = ''; }}
@@ -293,27 +302,55 @@
 								<span class="text-amber-600">{pasteRows.length - matchedCount} not found (will be skipped).</span>
 							{/if}
 						</p>
-						<div class="overflow-x-auto max-h-48 border border-gray-200 rounded bg-white">
-							<table class="w-full text-xs">
+						<div class="overflow-x-auto overflow-y-auto border border-gray-200 rounded bg-white" style="max-height: calc(15 * 1.25rem + 1.75rem);">
+							<table class="border-collapse" style="font-size: 0.75rem;">
 								<thead class="bg-gray-50 sticky top-0">
 									<tr>
-										<th class="px-2 py-1 text-left font-medium text-gray-600">Flask</th>
-										<th class="px-2 py-1 text-left font-medium text-gray-600">Date</th>
-										<th class="px-2 py-1 text-left font-medium text-gray-600">Time UTC</th>
-										<th class="px-2 py-1 text-left font-medium text-gray-600">Lat</th>
-										<th class="px-2 py-1 text-left font-medium text-gray-600">Lon</th>
+										<th class="px-1 py-0.5 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">Flask</th>
+										<th class="px-1 py-0.5 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">Date</th>
+										<th class="px-1 py-0.5 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">Time UTC</th>
+										<th class="px-1 py-0.5 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">Lat</th>
+										<th class="px-1 py-0.5 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">Lon</th>
+										<th class="px-1 py-0.5 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">Init. pressure</th>
+										<th class="px-1 py-0.5 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">Start LT</th>
+										<th class="px-1 py-0.5 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">Stop LT</th>
+										<th class="px-1 py-0.5 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">Final pressure</th>
+										<th class="px-1 py-0.5 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">Wind</th>
+										<th class="px-1 py-0.5 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">Ship</th>
+										<th class="px-1 py-0.5 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">Comment</th>
 									</tr>
 								</thead>
 								<tbody>
-									{#each pasteRows as row}
+									{#each pasteRows as row, i}
 										<tr class={row.lineId !== null ? 'bg-green-50' : 'bg-amber-50'}>
-											<td class="px-2 py-0.5 font-medium {row.lineId !== null ? 'text-green-800' : 'text-amber-700'}">
-												{row.flaskName}
+											<td class="px-1 py-0 font-medium whitespace-nowrap">
+												<input
+													type="text"
+													value={row.flaskName}
+													oninput={(e) => { pasteRows[i].flaskName = e.currentTarget.value; }}
+													onblur={() => { pasteRows[i].lineId = flaskIndex.get(pasteRows[i].flaskName.toLowerCase().trim()) ?? null; }}
+													class="w-full h-4 leading-none text-xs bg-transparent border-b border-transparent hover:border-gray-300 focus:border-sky-400 focus:outline-none {row.lineId !== null ? 'text-green-800' : 'text-amber-700'}"
+												/>
 											</td>
-											<td class="px-2 py-0.5 text-gray-700">{row.sampledAtDate || '—'}</td>
-											<td class="px-2 py-0.5 text-gray-700">{row.sampledAtTime || '—'}</td>
-											<td class="px-2 py-0.5 text-gray-700">{row.sampledLatRaw || '—'}</td>
-											<td class="px-2 py-0.5 text-gray-700">{row.sampledLonRaw || '—'}</td>
+											<td class="px-1 py-0 text-gray-700 whitespace-nowrap">{row.sampledAtDate || '—'}</td>
+											<td class="px-1 py-0 text-gray-700 whitespace-nowrap">{row.sampledAtTime || '—'}</td>
+											<td class="px-1 py-0 text-gray-700 whitespace-nowrap">{row.sampledLatRaw || '—'}</td>
+											<td class="px-1 py-0 text-gray-700 whitespace-nowrap">{row.sampledLonRaw || '—'}</td>
+											<td class="px-1 py-0 text-gray-700 whitespace-nowrap">{row.sampledInitialPressure || '—'}</td>
+											<td class="px-1 py-0 text-gray-700 whitespace-nowrap">{row.sampledLocalStartTime || '—'}</td>
+											<td class="px-1 py-0 text-gray-700 whitespace-nowrap">{row.sampledLocalStopFlushTime || '—'}</td>
+											<td class="px-1 py-0 text-gray-700 whitespace-nowrap">{row.sampledFinalPressure || '—'}</td>
+											<td class="px-1 py-0 text-gray-700 whitespace-nowrap">{row.sampledWindSpeedDirection || '—'}</td>
+											<td class="px-1 py-0 text-gray-700 whitespace-nowrap">{row.sampledShipSpeedDirection || '—'}</td>
+											<td class="px-1 py-0 whitespace-nowrap">
+												<input
+													type="text"
+													value={row.sampledComments}
+													oninput={(e) => { pasteRows[i].sampledComments = e.currentTarget.value; }}
+													class="w-full h-4 leading-none text-xs bg-transparent border-b border-transparent hover:border-gray-300 focus:border-sky-400 focus:outline-none text-gray-700"
+													placeholder="—"
+												/>
+											</td>
 										</tr>
 									{/each}
 								</tbody>
