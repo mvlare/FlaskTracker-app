@@ -1,8 +1,8 @@
 import { db } from '$lib/server/db';
-import { flasks, flaskLowPressureEvents, flasksRef, flaskRefType, boxContentLines } from '$lib/server/db/schema';
+import { flasks, flaskLowPressureEvents, flasksRef, flaskRefType, boxContentLines, boxContentHeaders } from '$lib/server/db/schema';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect, error } from '@sveltejs/kit';
-import { eq, desc, and, gt } from 'drizzle-orm';
+import { eq, desc, and, gt, isNotNull } from 'drizzle-orm';
 import {
 	validateRequired,
 	processRemarks,
@@ -37,11 +37,13 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		orderBy: [desc(flaskLowPressureEvents.lowPressureAt)]
 	});
 
-	// Check if this flask is referenced in any shipment — if so, name cannot be changed
-	const inShipment = await db.query.boxContentLines.findFirst({
-		where: eq(boxContentLines.flaskId, flaskId),
-		columns: { id: true }
-	});
+	// Check if this flask is in a ready box — if so, name cannot be changed
+	const [inReadyBox] = await db
+		.select({ id: boxContentLines.id })
+		.from(boxContentLines)
+		.innerJoin(boxContentHeaders, eq(boxContentLines.boxContentHeaderId, boxContentHeaders.id))
+		.where(and(eq(boxContentLines.flaskId, flaskId), isNotNull(boxContentHeaders.readyAt)))
+		.limit(1);
 
 	// Check if broken date is locked — resolve chain root first, then check for a successor
 	const flaskAsNew = await db.query.flasksRef.findFirst({
@@ -60,7 +62,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			id: e.id,
 			lowPressureAt: e.lowPressureAt.toISOString().split('T')[0] // Date only
 		})),
-		nameReadOnly: !!inShipment,
+		nameReadOnly: !!inReadyBox,
 		brokenAtReadOnly: !!hasRepairedSuccessor
 	};
 };
@@ -95,12 +97,14 @@ export const actions: Actions = {
 		});
 
 		if (currentFlask && name.trim() !== currentFlask.name) {
-			const inShipment = await db.query.boxContentLines.findFirst({
-				where: eq(boxContentLines.flaskId, flaskId),
-				columns: { id: true }
-			});
-			if (inShipment) {
-				return fail(400, { error: 'Flask name cannot be changed because it is used in a shipment.' });
+			const [inReadyBox] = await db
+				.select({ id: boxContentLines.id })
+				.from(boxContentLines)
+				.innerJoin(boxContentHeaders, eq(boxContentLines.boxContentHeaderId, boxContentHeaders.id))
+				.where(and(eq(boxContentLines.flaskId, flaskId), isNotNull(boxContentHeaders.readyAt)))
+				.limit(1);
+			if (inReadyBox) {
+				return fail(400, { error: 'Flask name cannot be changed because it was placed in a box that was ready for pickup.' });
 			}
 		}
 
