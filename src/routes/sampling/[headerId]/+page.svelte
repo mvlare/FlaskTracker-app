@@ -241,6 +241,18 @@
 				{data.header.returnedAt ? formatDateDisplay(data.header.returnedAt) : '—'}
 			</span>
 		</div>
+		{#if hasCoords}
+			<div class="md:hidden mb-3">
+				<button
+					type="button"
+					onclick={() => (showMap = true)}
+					class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold bg-sky-500 text-white rounded-lg hover:bg-sky-600 shadow transition-colors"
+				>
+					<MapIcon class="h-4 w-4" />
+					View sampling locations on map
+				</button>
+			</div>
+		{/if}
 		<div class="inline-flex items-center gap-2 mb-4 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg flex-wrap">
 			<span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Import</span>
 			<span class="text-gray-300">|</span>
@@ -835,7 +847,7 @@
 		</div>
 
 		{#if hasCoords}
-			<div class="mt-5 flex justify-center">
+			<div class="mt-5 hidden md:flex justify-center">
 				<button
 					type="button"
 					onclick={() => (showMap = true)}
