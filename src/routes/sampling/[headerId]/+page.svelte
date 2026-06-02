@@ -2,8 +2,9 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { enhance } from '$app/forms';
 	import { tick } from 'svelte';
-	import { ArrowLeft, Pencil, Save, X, Clipboard } from 'lucide-svelte';
+	import { ArrowLeft, Pencil, Save, X, Clipboard, Map as MapIcon } from 'lucide-svelte';
 	import { formatDateDisplay } from '$lib/utils/dates';
+	import SamplingMapModal from '$lib/components/sampling/SamplingMapModal.svelte';
 
 	let { data, form } = $props();
 
@@ -107,6 +108,9 @@
 		promptCopied = true;
 		setTimeout(() => { promptCopied = false; }, 2000);
 	}
+
+	let showMap = $state(false);
+	const hasCoords = $derived(data.lines.some((l) => l.sampledLat != null && l.sampledLon != null));
 
 	let clearAllConfirm = $state(false);
 	let showPaste = $state(false);
@@ -829,5 +833,22 @@
 				{/if}
 			</div>
 		</div>
+
+		{#if hasCoords}
+			<div class="mt-5 flex justify-center">
+				<button
+					type="button"
+					onclick={() => (showMap = true)}
+					class="flex items-center gap-2 px-6 py-3 text-base font-semibold bg-sky-500 text-white rounded-xl hover:bg-sky-600 shadow-md transition-colors"
+				>
+					<MapIcon class="h-5 w-5" />
+					View sampling locations on map
+				</button>
+			</div>
+		{/if}
 	</div>
 </div>
+
+{#if showMap}
+	<SamplingMapModal lines={data.lines} onClose={() => (showMap = false)} />
+{/if}
