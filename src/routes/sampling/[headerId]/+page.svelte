@@ -4,7 +4,6 @@
 	import { tick } from 'svelte';
 	import { ArrowLeft, Pencil, Save, X, Clipboard, Map as MapIcon } from 'lucide-svelte';
 	import { formatDateDisplay } from '$lib/utils/dates';
-	import SamplingMapModal from '$lib/components/sampling/SamplingMapModal.svelte';
 
 	let { data, form } = $props();
 
@@ -109,8 +108,11 @@
 		setTimeout(() => { promptCopied = false; }, 2000);
 	}
 
-	let showMap = $state(false);
 	const hasCoords = $derived(data.lines.some((l) => l.sampledLat != null && l.sampledLon != null));
+
+	function goToMap() {
+		goto(data.boxId ? `/sampling/${data.header.id}/map?boxId=${data.boxId}` : `/sampling/${data.header.id}/map`);
+	}
 
 	let clearAllConfirm = $state(false);
 	let showPaste = $state(false);
@@ -206,7 +208,7 @@
 <div class="min-h-screen bg-gray-50">
 	<div class="max-w-full mx-auto px-4 py-4">
 		<!-- Header -->
-		<div class="flex items-center gap-3 mb-1 flex-wrap">
+		<div class="inline-flex items-center gap-3 mb-1 flex-wrap bg-white border border-gray-200 rounded-lg shadow-sm px-4 py-2.5">
 			<button
 				type="button"
 				onclick={handleBack}
@@ -241,20 +243,8 @@
 				{data.header.returnedAt ? formatDateDisplay(data.header.returnedAt) : '—'}
 			</span>
 		</div>
-		{#if hasCoords}
-			<div class="md:hidden mb-3">
-				<button
-					type="button"
-					onclick={() => (showMap = true)}
-					class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold bg-sky-500 text-white rounded-lg hover:bg-sky-600 shadow transition-colors"
-				>
-					<MapIcon class="h-4 w-4" />
-					View sampling locations on map
-				</button>
-			</div>
-		{/if}
-		<div class="inline-flex items-center gap-2 mb-4 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg flex-wrap">
-			<span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Import</span>
+		<div><div class="inline-flex items-center gap-2 mb-4 px-4 py-2.5 bg-white border border-gray-200 rounded-lg shadow-sm flex-wrap">
+			<span class="text-xs font-bold text-gray-800 uppercase tracking-wider">Import</span>
 			<span class="text-gray-300">|</span>
 			<span class="text-xs text-gray-400">1)</span>
 			<button
@@ -283,7 +273,7 @@
 				<Clipboard class="h-4 w-4" />
 				Paste clipboard
 			</button>
-		</div>
+		</div></div>
 
 		<!-- Paste panel -->
 		{#if showPaste}
@@ -847,20 +837,16 @@
 		</div>
 
 		{#if hasCoords}
-			<div class="mt-5 hidden md:flex justify-center">
+			<div class="mt-4">
 				<button
 					type="button"
-					onclick={() => (showMap = true)}
-					class="flex items-center gap-2 px-6 py-3 text-base font-semibold bg-sky-500 text-white rounded-xl hover:bg-sky-600 shadow-md transition-colors"
+					onclick={goToMap}
+					class="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold bg-sky-500 text-white rounded-lg hover:bg-sky-600 shadow transition-colors"
 				>
-					<MapIcon class="h-5 w-5" />
+					<MapIcon class="h-4 w-4" />
 					View sampling locations on map
 				</button>
 			</div>
 		{/if}
 	</div>
 </div>
-
-{#if showMap}
-	<SamplingMapModal lines={data.lines} onClose={() => (showMap = false)} />
-{/if}
