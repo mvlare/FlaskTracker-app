@@ -75,6 +75,8 @@
 			maxZoom: 18
 		}).addTo(leafletMap);
 
+		const isTouch = window.matchMedia('(pointer: coarse)').matches;
+
 		const markers = validPoints.map((line) => {
 			const marker = L.circleMarker([line.sampledLat, line.sampledLon], {
 				radius: 6,
@@ -91,8 +93,14 @@
 				.bindPopup(buildPopupHtml(line), { maxWidth: 260 })
 				.addTo(leafletMap!);
 
-			marker.on('mouseover', () => marker.openPopup());
-			marker.on('mouseout', () => marker.closePopup());
+			if (isTouch) {
+				// On touch devices tap opens the popup; Leaflet's bindPopup handles this by default.
+				// We just increase the circle so it's easier to hit.
+				marker.setRadius(10);
+			} else {
+				marker.on('mouseover', () => marker.openPopup());
+				marker.on('mouseout', () => marker.closePopup());
+			}
 
 			return marker;
 		});
