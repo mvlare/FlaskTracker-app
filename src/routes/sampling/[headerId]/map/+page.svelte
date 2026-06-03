@@ -2,7 +2,7 @@
 	import 'leaflet/dist/leaflet.css';
 	import { goto } from '$app/navigation';
 	import { onMount, onDestroy } from 'svelte';
-	import { ArrowLeft } from 'lucide-svelte';
+	import { ArrowLeft, Route } from 'lucide-svelte';
 	import { formatDateDisplay } from '$lib/utils/dates';
 
 	let { data } = $props();
@@ -16,6 +16,14 @@
 
 	let mapEl: HTMLDivElement | undefined = $state();
 	let leafletMap: import('leaflet').Map | undefined;
+	let showRoute = $state(false);
+	let routeLayer: import('leaflet').LayerGroup | undefined;
+
+	const routePoints = $derived(
+		validPoints
+			.filter((p) => p.sampledAt != null)
+			.sort((a, b) => new Date(a.sampledAt!).getTime() - new Date(b.sampledAt!).getTime())
+	);
 
 	function handleBack() {
 		goto(data.boxId ? `/sampling/${data.header.id}?boxId=${data.boxId}` : `/sampling/${data.header.id}`);
@@ -45,6 +53,48 @@
 		return `<div class="popup-content"><strong class="popup-name">${line.flask.name}</strong><table class="popup-table">${tableRows}</table></div>`;
 	}
 
+	// When points straddle the antimeridian (e.g. Russia ~170° + Alaska ~-170°), shift all
+	// eastern points to their western equivalent so everything lands on the same world copy.
+	function normalizeCoords(coords: [number, number][]): [number, number][] {
+		const hasEast = coords.some((c) => c[1] > 150);
+		const hasWest = coords.some((c) => c[1] < -150);
+		if (!hasEast || !hasWest) return coords;
+		return coords.map((c) => [c[0], c[1] > 0 ? c[1] - 360 : c[1]] as [number, number]);
+	}
+
+	async function drawRoute() {
+		if (!leafletMap || routePoints.length < 2) return;
+		const L = (await import('leaflet')).default;
+
+		routeLayer = L.layerGroup();
+
+		const rawCoords = routePoints.map((p) => [p.sampledLat, p.sampledLon] as [number, number]);
+		const coords = normalizeCoords(rawCoords);
+		L.polyline(coords, {
+			color: '#f97316',
+			weight: 2.5,
+			dashArray: '9 6',
+			opacity: 0.85
+		}).addTo(routeLayer);
+
+		coords.forEach((coord, i) => {
+			const icon = L.divIcon({
+				html: `<div class="route-seq">${i + 1}</div>`,
+				className: '',
+				iconSize: [18, 18],
+				iconAnchor: [9, 9]
+			});
+			L.marker(coord, { icon, interactive: false }).addTo(routeLayer!);
+		});
+
+		routeLayer.addTo(leafletMap);
+	}
+
+	function clearRoute() {
+		routeLayer?.remove();
+		routeLayer = undefined;
+	}
+
 	onMount(async () => {
 		if (!mapEl || validPoints.length === 0) return;
 
@@ -59,8 +109,11 @@
 
 		const isTouch = window.matchMedia('(pointer: coarse)').matches;
 
-		const markers = validPoints.map((line) => {
-			const marker = L.circleMarker([line.sampledLat, line.sampledLon], {
+		const rawCoords = validPoints.map((p) => [p.sampledLat, p.sampledLon] as [number, number]);
+		const normCoords = normalizeCoords(rawCoords);
+
+		const markers = validPoints.map((line, idx) => {
+			const marker = L.circleMarker(normCoords[idx], {
 				radius: 6,
 				fillColor: '#0ea5e9',
 				color: 'white',
@@ -86,7 +139,7 @@
 		});
 
 		if (markers.length === 1) {
-			leafletMap.setView([validPoints[0].sampledLat, validPoints[0].sampledLon], 10);
+			leafletMap.setView(normCoords[0], 10);
 		} else {
 			const group = L.featureGroup(markers);
 			leafletMap.fitBounds(group.getBounds(), { padding: [20, 20] });
@@ -136,9 +189,26 @@
 				{data.header.returnedAt ? formatDateDisplay(data.header.returnedAt) : '—'}
 			</span>
 		</div>
-		<p class="mt-1.5 px-1 text-xs text-gray-500">
-			{validPoints.length} {validPoints.length === 1 ? 'location' : 'locations'}
-		</p>
+		<div class="mt-1.5 px-1 flex items-center gap-3">
+			<span class="text-xs text-gray-500">
+				{validPoints.length} {validPoints.length === 1 ? 'location' : 'locations'}
+			</span>
+			{#if validPoints.length > 0}
+				<button
+					type="button"
+					onclick={() => { showRoute = !showRoute; showRoute ? drawRoute() : clearRoute(); }}
+					disabled={routePoints.length < 2}
+					title={routePoints.length < 2 ? 'Need 2+ locations with a recorded date' : ''}
+					class="flex items-center gap-2 text-sm font-medium px-3 py-1 rounded-md border shadow-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed
+						{showRoute
+							? 'bg-orange-500 border-orange-500 text-white hover:bg-orange-600'
+							: 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}"
+				>
+					<Route class="h-3.5 w-3.5" />
+					Show route
+				</button>
+			{/if}
+		</div>
 	</div>
 
 	<!-- Map -->
@@ -195,5 +265,20 @@
 		font-size: 11px;
 		font-weight: 500;
 		padding: 1px 0;
+	}
+	:global(.route-seq) {
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		background: #f97316;
+		color: white;
+		font-size: 9px;
+		font-weight: 700;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border: 1.5px solid white;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+		pointer-events: none;
 	}
 </style>
