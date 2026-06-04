@@ -381,9 +381,8 @@
 								action={data.openShipment ? '?/updateHeader' : '?/createHeader'}
 								use:enhance={({ formData, cancel }) => {
 									const destination = (formData.get('destinationText') as string) ?? '';
-									const returnedAt = (formData.get('returnedAt') as string) ?? '';
-									if (returnedAt && !destination.trim()) {
-										headerError = 'Destination is required when a return date is set.';
+									if (!destination.trim()) {
+										headerError = 'Destination is required — enter a destination or type \'unknown\'.';
 										cancel();
 										return;
 									}
@@ -402,6 +401,7 @@
 								{/if}
 
 								<div class="space-y-4">
+									<div>
 									<FloatingLabelInput
 										id="destination"
 										name="destinationText"
@@ -409,7 +409,10 @@
 										type="text"
 										value={data.openShipment?.destinationText || ''}
 										disabled={isSubmitting}
+										required={true}
 									/>
+									<p class="mt-1 text-xs text-amber-600">Enter a destination, or type 'unknown' if not yet decided.</p>
+								</div>
 
 									<div class="flex items-center gap-2">
 										<div class="flex-1">
@@ -702,9 +705,8 @@
 								<div class="flex gap-2">
 									<button
 										type="button"
-										onclick={() => focusedShipment?.readyAt && goto(`/sampling/${focusedShipmentId}?boxId=${data.box!.id}`)}
-										disabled={!focusedShipment?.readyAt}
-										class="flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-colors font-medium shadow-sm {focusedShipment?.readyAt ? 'bg-sky-500 text-gray-800 hover:bg-sky-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}"
+										onclick={() => goto(`/sampling/${focusedShipmentId}?boxId=${data.box!.id}`)}
+										class="flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-colors font-medium shadow-sm bg-sky-500 text-gray-800 hover:bg-sky-600"
 									>
 										<Wind class="h-4 w-4" />
 										Sampling sheet

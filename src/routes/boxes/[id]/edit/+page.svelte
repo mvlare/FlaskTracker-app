@@ -76,7 +76,7 @@
 			<div class="flex items-center gap-1 mt-1">
 				<Info class="h-3 w-3 text-gray-400" />
 				{#if data.nameReadOnly}
-					<p class="text-xs text-amber-600">Name cannot be changed — this box is used.</p>
+					<p class="text-xs text-amber-600">Name cannot be changed — this box is used (has Ready date).</p>
 				{:else}
 					<p class="text-xs text-gray-500">Required. This name must be unique.</p>
 				{/if}
